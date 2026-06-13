@@ -32,7 +32,11 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
 - **Test / verification:** `pip install -r requirements.txt`; existing suite green; every Settings
   field has a documented env var.
 - **Expected outcome:** Deps + typed config available; index never committed; env docs complete.
-- **DONE / DROPPED:**
+- **DONE (commit `9c677e8`):** Added `fastembed` (0.8) + `qdrant-client` (1.18) to requirements;
+  added `embedding_provider`/`embedding_model`/`embedding_batch_size`/`qdrant_path`/`qdrant_collection`
+  to `Settings`; documented all five in `.env.example`; gitignored `data/index/`. Model id
+  `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (dim 384) verified present in
+  fastembed 0.8.0's supported list.
 
 ## 2) Embedder abstraction (app/rag/embeddings.py)
 - **Goal:** A model-agnostic embedding interface with an offline-testable fake.
@@ -44,7 +48,10 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
   - `get_embedder(settings=None)`: factory by `embedding_provider`.
 - **Test / verification:** see item 5.
 - **Expected outcome:** Deterministic offline embeddings for tests; real fastembed behind config.
-- **DONE / DROPPED:**
+- **DONE (commit `9c677e8`):** Added `Embedder` protocol, `FakeEmbedder` (sha256-derived,
+  L2-normalized), `FastEmbedEmbedder` (lazy `fastembed.TextEmbedding`), and `get_embedder`.
+  Real embedder validated once: EN+DE -> 384-dim vectors (benign mean-pooling notice from
+  fastembed 0.8, which is the correct pooling for this model).
 
 ## 3) Vector store (app/rag/vector_store.py)
 - **Goal:** Wrap qdrant-client local mode with collection + upsert + filtered search.
@@ -59,7 +66,10 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
   - `count()`.
 - **Test / verification:** see item 5.
 - **Expected outcome:** Filterable index; pre-filtering carries the anti-blending guarantee.
-- **DONE / DROPPED:**
+- **DONE (commit `9c677e8`):** Added `VectorStore` over qdrant-client local mode: `from_settings`
+  (on-disk or `:memory:`), `ensure_collection` (Cosine), `upsert_chunks` (uuid5 point ids +
+  `model_dump(mode="json")` payload), filtered `search`, `count`. API verified against
+  qdrant-client 1.18 (`query_points`, `Filter`/`FieldCondition`).
 
 ## 4) Indexing pipeline + CLI (app/rag/indexing.py + scripts/index.py)
 - **Goal:** Embed chunk artifacts and populate the collection, offline-testable.
@@ -74,7 +84,10 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
     "Nothing to index" on empty chunk dir.
 - **Test / verification:** see item 5; CLI behavior on an empty chunk dir.
 - **Expected outcome:** Deterministic, memory-safe index build with a result summary.
-- **DONE / DROPPED:**
+- **DONE (commit `9c677e8`):** Added `load_chunk_artifacts` (per-file generator, skips
+  `manifest.json`), `index_corpus` (ensure collection -> per-file batched embed + upsert) returning
+  `IndexResult`, and `scripts/index.py`. CLI prints "Nothing to index: no chunk artifacts found."
+  against the empty chunk dir; on-disk `data/index/qdrant` wiring validated then discarded.
 
 ## 5) Tests (offline: fake embedder + in-memory Qdrant)
 - **Goal:** Prove embeddings, vector store, and indexing offline with zero downloads/Docker.
@@ -88,4 +101,9 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
     search isolates by university.
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; upsert count + metadata isolation covered.
-- **DONE / DROPPED:**
+- **DONE (commit `9c677e8`):** Added `tests/test_embeddings.py`, `tests/test_vector_store.py`,
+  `tests/test_indexing.py` (fake embedder + in-memory Qdrant, fully offline).
+  - Metric / result: `pytest` -> 48 passed (38 prior + 10 new). Warnings: pre-existing
+    Starlette/httpx + PyMuPDF SWIG deprecations.
+  - Decision: Phase 3b complete; the ingestion lane is done. Phase 4 (retrieval policy) builds on
+    `VectorStore.search`.
