@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_version: str = "v1"
 
+    registry_path: str = "data/registry/sources.json"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
