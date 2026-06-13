@@ -110,4 +110,6 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
 - **Test / verification:** every `Settings` field has a matching documented variable; `pytest`
   stays green (no behavior change).
 - **Expected outcome:** `.env.example` is complete; configuration stays discoverable.
-- **DONE / DROPPED:**
+- **DONE (commit `ae05649`):** Added a "Registry & ingestion paths" section to `.env.example`
+  documenting `REGISTRY_PATH`, `RAW_DIR`, `NORMALIZED_DIR`. All `Settings` fields now have a
+  matching documented variable. `pytest` -> 28 passed (no behavior change).
