@@ -118,4 +118,6 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
     `programme_slug="msc-data-science"` search returns only the DS chunks, and the converse for CS.
 - **Test / verification:** `pytest` all green.
 - **Expected outcome:** Programme-level filtering isolation is covered by an explicit test.
-- **DONE / DROPPED:**
+- **DONE (commit `e313268`):** Added `test_search_isolates_by_programme_within_same_university`
+  and extended `_chunk` with a `programme_slug` param. A `msc-data-science` filter returns only the
+  two DS chunks; a `msc-computer-science` filter returns only the CS chunk. `pytest` -> 49 passed.
