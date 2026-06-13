@@ -38,6 +38,11 @@ dist/
 .vscode/
 *.swp
 
+# Data: raw archive and normalized corpus are derived/copyrighted material;
+# never commit them (the curated metadata manifest data/registry/ stays tracked).
+data/raw/
+data/normalized/
+
 # OS
 .DS_Store
 Thumbs.db
