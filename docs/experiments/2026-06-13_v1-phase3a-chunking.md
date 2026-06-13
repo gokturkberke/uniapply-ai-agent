@@ -112,4 +112,9 @@ endpoints (those are Phase 3b+). Chunking is deterministic, so no `random_state`
 - **Test / verification:** `pytest` all green.
 - **Expected outcome:** `.env.example` documents every available config variable introduced by
   Phase 3a.
-- **DONE / DROPPED:**
+- **DONE (commit `d880dcd`):** Added `CHUNK_DIR`, `CHUNK_MAX_TOKENS`, and
+  `CHUNK_OVERLAP_TOKENS` defaults to `.env.example`, keeping the chunk settings aligned with
+  `Settings`.
+  - Metric / result: `pytest` -> 38 passed, 8 warnings (same Starlette/httpx and PyMuPDF
+    deprecation warnings as before).
+  - Decision: Phase 3a config documentation is aligned; PR is ready to open.
