@@ -29,7 +29,9 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
   - Add `raw_dir: str = "data/raw"` and `normalized_dir: str = "data/normalized"` to `Settings`.
 - **Test / verification:** `pip install -r requirements.txt` succeeds; existing suite still green.
 - **Expected outcome:** Parsing deps available; derived corpora never committed; dirs configurable.
-- **DONE / DROPPED:**
+- **DONE (commit `e3a4e2c`):** Added pymupdf4llm 1.27 / beautifulsoup4 4.15 / markdownify 1.2
+  (pinned to installed majors); gitignored `data/raw/` + `data/normalized/`; added `raw_dir` /
+  `normalized_dir` to `Settings`. `pip install -r requirements.txt` resolves; suite stays green.
 
 ## 2) Parser backends + dispatch (app/rag/parsers.py)
 - **Goal:** Convert a single PDF/HTML file to Markdown behind a swappable suffix dispatch.
@@ -41,7 +43,9 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
     on unsupported suffixes. Small explicit functions; no ABC hierarchy.
 - **Test / verification:** see item 5 (`tests/test_parsers.py`).
 - **Expected outcome:** Both formats normalize to non-empty Markdown; unknown types rejected.
-- **DONE / DROPPED:**
+- **DONE (commit `e3a4e2c`):** Added `app/rag/parsers.py` with `parse_pdf`, `parse_html`
+  (drops script/style/nav before conversion), and `parse_document` suffix dispatch raising a
+  clear `ValueError` on unsupported types.
 
 ## 3) Normalization pipeline (app/rag/ingestion.py)
 - **Goal:** Normalize registered sources from the raw archive into the normalized layer.
@@ -57,7 +61,10 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
   - Do NOT fabricate `last_updated`; it is user-curated manifest metadata, read-only here.
 - **Test / verification:** see item 5 (`tests/test_ingestion.py`).
 - **Expected outcome:** Deterministic, offline normalization with a derived output manifest.
-- **DONE / DROPPED:**
+- **DONE (commit `e3a4e2c`):** Added `app/rag/ingestion.py` with `IngestionResult`,
+  `normalize_source` (skip on no local_path, `FileNotFoundError` on missing file), and
+  `normalize_registry` (reuses `load_registry`, writes a derived `manifest.json`). No fabricated
+  `last_updated`.
 
 ## 4) Thin CLI entrypoint (scripts/ingest.py)
 - **Goal:** A human-triggered offline command to normalize the whole registry.
@@ -67,7 +74,8 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
     source (source_id, status, char_count, normalized_path). Logic stays in `app/rag/ingestion.py`.
 - **Test / verification:** runs without error against the empty registry (prints nothing to normalize).
 - **Expected outcome:** Reproducible offline ingestion entrypoint matching the notes' `scripts/`.
-- **DONE / DROPPED:**
+- **DONE (commit `e3a4e2c`):** Added `scripts/__init__.py` + `scripts/ingest.py`; `python -m
+  scripts.ingest` prints "Nothing to normalize: registry is empty." against the empty registry.
 
 ## 5) Tests + synthetic fixtures
 - **Goal:** Prove parsing and the pipeline offline, with zero real/copyrighted content.
@@ -84,4 +92,8 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
     writes `manifest.json`.
 - **Test / verification:** `pytest` all green, fully offline, including untouched Phase 1 tests.
 - **Expected outcome:** Green suite; structure-preservation and error paths covered.
-- **DONE / DROPPED:**
+- **DONE (commit `e3a4e2c`):** Added `tests/fixtures/ingestion/sample.html`, `tests/test_parsers.py`,
+  and `tests/test_ingestion.py` (PDF generated in `tmp_path`, raw/normalized dirs in `tmp_path`).
+  - Metric / result: `pytest` -> 28 passed (20 prior + 8 new). Warnings: pre-existing
+    Starlette/httpx + harmless PyMuPDF SWIG-binding deprecations.
+  - Decision: Phase 2 complete; normalized Markdown is the input for Phase 3 (chunking + index).
