@@ -107,3 +107,15 @@ point ids; embeddings deterministic for a fixed model (no `random_state`).
     Starlette/httpx + PyMuPDF SWIG deprecations.
   - Decision: Phase 3b complete; the ingestion lane is done. Phase 4 (retrieval policy) builds on
     `VectorStore.search`.
+
+## 6) Test programme-level isolation within the same university (pre-PR addition)
+- **Goal:** Make the critical domain rule explicit in tests: scope is university AND programme,
+  not just university. Two programmes at the same university must not blend under a programme filter.
+- **Files:** `tests/test_vector_store.py`.
+- **Steps:**
+  - Extend the `_chunk` helper with a `programme_slug` parameter.
+  - Index `uni-alpha`/`msc-data-science` (x2) and `uni-alpha`/`msc-computer-science` (x1); assert a
+    `programme_slug="msc-data-science"` search returns only the DS chunks, and the converse for CS.
+- **Test / verification:** `pytest` all green.
+- **Expected outcome:** Programme-level filtering isolation is covered by an explicit test.
+- **DONE / DROPPED:**
