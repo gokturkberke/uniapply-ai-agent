@@ -42,6 +42,7 @@ dist/
 # never commit them (the curated metadata manifest data/registry/ stays tracked).
 data/raw/
 data/normalized/
+data/chunks/
 
 # OS
 .DS_Store
