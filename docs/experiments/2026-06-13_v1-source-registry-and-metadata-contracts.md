@@ -28,7 +28,10 @@ source_type, authority, url, last_updated, country_scope, lang).
 - **Test / verification:** `grep -rn "docs/experiments/AGENTS.md" .` returns no matches;
   both root agent files now reference `docs/experiments/CLAUDE.md`.
 - **Expected outcome:** Documentation is internally consistent; no behavior change.
-- **DONE / DROPPED:**
+- **DONE (commit `de372fb`):** Edited `AGENTS.md` line 50 to reference
+  `docs/experiments/CLAUDE.md`. Verified `grep` finds no remaining
+  `docs/experiments/AGENTS.md` reference outside this plan file; both root agent
+  files now agree. No behavior change.
 
 ## 2) Add metadata contracts (app/rag/metadata.py)
 - **Goal:** Define the canonical, reusable Pydantic v2 metadata contracts for registered
@@ -47,7 +50,9 @@ source_type, authority, url, last_updated, country_scope, lang).
     `parent_id`) to Phase 3.
 - **Test / verification:** see item 5 (`tests/test_metadata.py`).
 - **Expected outcome:** Importable contracts; invalid slug/url/enum rejected at construction.
-- **DONE / DROPPED:**
+- **DONE (commit `96f25d7`):** Added `app/rag/__init__.py` and `app/rag/metadata.py`
+  with the three enums and `SourceMetadata` / `RegisteredSource` (kebab-case slug +
+  country_scope validators). Chunk-level fields deferred to Phase 3 as planned.
 
 ## 3) Add registry loader + empty manifest (app/rag/registry.py, data/registry/sources.json)
 - **Goal:** Load and validate a declarative source manifest into typed `RegisteredSource`
@@ -64,7 +69,9 @@ source_type, authority, url, last_updated, country_scope, lang).
     are added in Phase 2 only after manual verification.
 - **Test / verification:** see item 5 (`tests/test_registry.py`).
 - **Expected outcome:** Default-path load returns `[]`; scoped filters isolate by slug.
-- **DONE / DROPPED:**
+- **DONE (commit `96f25d7`):** Added `app/rag/registry.py` (`load_registry` with clear
+  errors on malformed JSON, non-list payload, and duplicate `source_id`; pure
+  `filter_sources`) and `data/registry/sources.json` as `[]`. No guessed URLs committed.
 
 ## 4) Wire registry_path into Settings (app/core/config.py)
 - **Goal:** Keep all configuration typed and centralized; no `os.environ` reads in domain code.
@@ -74,7 +81,8 @@ source_type, authority, url, last_updated, country_scope, lang).
   - `load_registry` consumes it via the existing `get_settings()` singleton.
 - **Test / verification:** covered indirectly by the default-path test in item 5.
 - **Expected outcome:** Registry location is configurable via env without code changes.
-- **DONE / DROPPED:**
+- **DONE (commit `96f25d7`):** Added `registry_path: str = "data/registry/sources.json"`
+  to `Settings`; `load_registry` resolves it via the existing `get_settings()` singleton.
 
 ## 5) Tests + fixtures (tests/test_metadata.py, tests/test_registry.py, tests/fixtures/)
 - **Goal:** Prove validation, uniqueness, scoped filtering, and cross-institution isolation
@@ -92,4 +100,8 @@ source_type, authority, url, last_updated, country_scope, lang).
     raises a clear error; committed empty `data/registry/sources.json` loads to `[]`.
 - **Test / verification:** `pytest` all green, including untouched `tests/test_api.py`.
 - **Expected outcome:** Green suite; anti-blending guarantee covered by an explicit test.
-- **DONE / DROPPED:**
+- **DONE (commit `96f25d7`):** Added `tests/fixtures/registry_sample.json` (synthetic),
+  `tests/test_metadata.py`, and `tests/test_registry.py` including the cross-institution
+  isolation test and the empty committed-manifest load.
+  - Metric / result: `pytest` -> 20 passed, 1 pre-existing Starlette/httpx warning.
+  - Decision: Phase 1 complete; foundation ready for Phase 2 (ingestion).
