@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     api_version: str = "v1"
 
     registry_path: str = "data/registry/sources.json"
+    raw_dir: str = "data/raw"
+    normalized_dir: str = "data/normalized"
 
     model_config = SettingsConfigDict(
         env_file=".env",
