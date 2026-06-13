@@ -1,0 +1,47 @@
+[
+  {
+    "source_id": "alpha-ds-official",
+    "title": "Uni Alpha - MSc Data Science admission page",
+    "university_slug": "uni-alpha",
+    "programme_slug": "msc-data-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://example.org/alpha/data-science/admission",
+    "country_scope": ["all"],
+    "last_updated": "2026-01-15"
+  },
+  {
+    "source_id": "alpha-ds-faq",
+    "title": "Uni Alpha - MSc Data Science FAQ",
+    "university_slug": "uni-alpha",
+    "programme_slug": "msc-data-science",
+    "source_type": "faq",
+    "source_authority": "primary",
+    "lang": "de",
+    "url": "https://example.org/alpha/data-science/faq",
+    "country_scope": ["all"]
+  },
+  {
+    "source_id": "alpha-vpd-secondary",
+    "title": "Uni Alpha - procedural VPD guidance",
+    "university_slug": "uni-alpha",
+    "programme_slug": null,
+    "source_type": "vpd_info",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://example.org/portal/vpd",
+    "country_scope": ["non-eu", "in", "cn", "vn"]
+  },
+  {
+    "source_id": "beta-cs-official",
+    "title": "Uni Beta - MSc Computer Science admission page",
+    "university_slug": "uni-beta",
+    "programme_slug": "msc-computer-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://example.org/beta/computer-science/admission",
+    "country_scope": ["all"]
+  }
+]

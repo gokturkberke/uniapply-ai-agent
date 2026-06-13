@@ -47,7 +47,7 @@ Every task follows this loop exactly, with no exceptions:
 - CRITICAL: After presenting the plan, you MUST wait for my explicit approval before writing or modifying any files.
 - Then Code -> Test -> Fix. Prefer small, architecture-preserving edits over broad rewrites.
 - Every plan and its outcome is committed AND pushed; the working tree returns clean (`git status` empty) before moving to the next item.
-- Plan file format and marking contract: see `docs/experiments/AGENTS.md` (authoritative).
+- Plan file format and marking contract: see `docs/experiments/CLAUDE.md` (authoritative).
 
 # 5. Data Science & ML Rules (CRITICAL)
 
