@@ -102,3 +102,14 @@ endpoints (those are Phase 3b+). Chunking is deterministic, so no `random_state`
   - Metric / result: `pytest` -> 38 passed (28 prior + 10 new), offline. Warnings: pre-existing
     Starlette/httpx + harmless PyMuPDF SWIG deprecations.
   - Decision: Phase 3a complete; chunk artifacts are the input for Phase 3b (embeddings + Qdrant).
+
+## 6) Document chunk settings in .env.example
+- **Goal:** Keep environment documentation aligned with the new `Settings` fields added in item 1.
+- **Files:** `.env.example`.
+- **Steps:**
+  - Add `CHUNK_DIR=data/chunks`, `CHUNK_MAX_TOKENS=600`, and `CHUNK_OVERLAP_TOKENS=80`.
+  - Keep the values grouped with the registry/ingestion path defaults.
+- **Test / verification:** `pytest` all green.
+- **Expected outcome:** `.env.example` documents every available config variable introduced by
+  Phase 3a.
+- **DONE / DROPPED:**
