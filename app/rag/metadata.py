@@ -97,3 +97,47 @@ class RegisteredSource(SourceMetadata):
     @classmethod
     def _check_source_id(cls, value: str) -> str:
         return _validate_slug(value, "source_id")
+
+
+class ParentSection(BaseModel):
+    """A header-bounded section of a source, retrieved as parent context.
+
+    Child chunks reference their parent by ``parent_id`` so retrieval can return
+    the larger surrounding section (parent-document pattern) instead of an
+    isolated fragment.
+    """
+
+    parent_id: str
+    source_id: str
+    heading_path: list[str]
+    text: str
+
+
+class Chunk(BaseModel):
+    """A searchable chunk derived from a normalized source.
+
+    The source's scoping fields are denormalized onto every chunk so a later
+    vector-store payload can pre-filter by university/programme without
+    re-joining the registry, carrying the anti-blending guarantee into search.
+    Chunk-level retrieval fields (e.g. embedding vector) are added in Phase 3b.
+    """
+
+    chunk_id: str
+    parent_id: str
+    source_id: str
+    university_slug: str
+    programme_slug: str | None
+    source_authority: SourceAuthority
+    lang: Language
+    country_scope: list[str]
+    heading_path: list[str]
+    text: str
+    token_estimate: int
+
+
+class ChunkingResult(BaseModel):
+    """All parents and chunks produced from a single source."""
+
+    source_id: str
+    parents: list[ParentSection]
+    chunks: list[Chunk]

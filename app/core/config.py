@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     registry_path: str = "data/registry/sources.json"
     raw_dir: str = "data/raw"
     normalized_dir: str = "data/normalized"
+    chunk_dir: str = "data/chunks"
+    chunk_max_tokens: int = 600
+    chunk_overlap_tokens: int = 80
 
     model_config = SettingsConfigDict(
         env_file=".env",
