@@ -1,11 +1,19 @@
 """Tests for dense retrieval + the Retrieval Gate (offline)."""
 
+from pathlib import Path
+
 import pytest
 from qdrant_client import QdrantClient
 
 from app.rag.embeddings import FakeEmbedder
-from app.rag.metadata import Chunk, Language, SourceAuthority
-from app.rag.retrieval import retrieve
+from app.rag.metadata import Chunk, ChunkingResult, Language, ParentSection, SourceAuthority
+from app.rag.parents import ParentStore
+from app.rag.retrieval import (
+    RetrievedChunk,
+    expand_to_parents,
+    retrieve,
+    retrieve_with_parents,
+)
 from app.rag.vector_store import VectorStore
 
 _EMBEDDER = FakeEmbedder()
@@ -105,3 +113,81 @@ def test_unknown_university_yields_empty_and_insufficient() -> None:
 def test_university_slug_is_required() -> None:
     with pytest.raises(TypeError):
         retrieve("question")  # type: ignore[call-arg]
+
+
+def test_expand_to_parents_dedupes_and_skips_missing(tmp_path: Path) -> None:
+    source_id = "uni-alpha-msc-data-science"
+    present_parent = f"{source_id}::section::000"
+    artifact = ChunkingResult(
+        source_id=source_id,
+        parents=[
+            ParentSection(
+                parent_id=present_parent,
+                source_id=source_id,
+                heading_path=["Heading"],
+                text="full parent section text",
+            )
+        ],
+        chunks=[],
+    )
+    (tmp_path / f"{source_id}.json").write_text(artifact.model_dump_json(), encoding="utf-8")
+
+    def _hit(chunk_id: str, parent_id: str, score: float) -> RetrievedChunk:
+        chunk = Chunk(
+            chunk_id=chunk_id,
+            parent_id=parent_id,
+            source_id=source_id,
+            university_slug="uni-alpha",
+            programme_slug="msc-data-science",
+            source_authority=SourceAuthority.primary,
+            lang=Language.en,
+            country_scope=["all"],
+            heading_path=["Heading"],
+            text="chunk text",
+            token_estimate=2,
+        )
+        return RetrievedChunk(chunk=chunk, score=score)
+
+    hits = [
+        _hit("c0", present_parent, 0.9),
+        _hit("c1", present_parent, 0.8),  # same parent -> deduped away
+        _hit("c2", f"{source_id}::section::999", 0.7),  # absent parent -> skipped
+    ]
+
+    parents = expand_to_parents(hits, parent_store=ParentStore(tmp_path))
+
+    assert [parent.parent_id for parent in parents] == [present_parent]
+
+
+def test_retrieve_with_parents_populates_parents(tmp_path: Path) -> None:
+    source_id = "uni-alpha-msc-data-science"
+    parent_id = f"{source_id}::section::000"
+    artifact = ChunkingResult(
+        source_id=source_id,
+        parents=[
+            ParentSection(
+                parent_id=parent_id,
+                source_id=source_id,
+                heading_path=["Heading"],
+                text="full parent section text",
+            )
+        ],
+        chunks=[],
+    )
+    (tmp_path / f"{source_id}.json").write_text(artifact.model_dump_json(), encoding="utf-8")
+
+    result = retrieve_with_parents(
+        "question",
+        university_slug="uni-alpha",
+        programme_slug="msc-data-science",
+        min_score=-1.0,
+        embedder=_EMBEDDER,
+        vector_store=_seeded_store(),
+        parent_store=ParentStore(tmp_path),
+    )
+
+    assert {hit.chunk.chunk_id for hit in result.hits} == {
+        "uni-alpha-ds::0000",
+        "uni-alpha-ds::0001",
+    }
+    assert [parent.parent_id for parent in result.parents] == [parent_id]  # deduped

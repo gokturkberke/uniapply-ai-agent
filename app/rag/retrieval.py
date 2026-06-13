@@ -10,11 +10,12 @@ Scope of this phase: retrieval only. No parent-document expansion, no hybrid /
 rerank, no LLM, no endpoints.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.rag.embeddings import Embedder, get_embedder
-from app.rag.metadata import Chunk
+from app.rag.metadata import Chunk, ParentSection
+from app.rag.parents import ParentStore
 from app.rag.vector_store import VectorStore
 
 
@@ -34,6 +35,7 @@ class RetrievalResult(BaseModel):
     hits: list[RetrievedChunk]
     sufficient_context: bool
     top_score: float | None
+    parents: list[ParentSection] = Field(default_factory=list)
 
 
 def retrieve(
@@ -79,3 +81,53 @@ def retrieve(
         sufficient_context=sufficient_context,
         top_score=top_score,
     )
+
+
+def expand_to_parents(
+    hits: list[RetrievedChunk], *, parent_store: ParentStore
+) -> list[ParentSection]:
+    """Map matched chunks to their parent sections, deduped in rank order.
+
+    A parent matched by several chunks appears once (first appearance wins);
+    parents missing from the chunk artifacts are skipped.
+    """
+
+    parents: list[ParentSection] = []
+    seen: set[str] = set()
+    for hit in hits:
+        parent_id = hit.chunk.parent_id
+        if parent_id in seen:
+            continue
+        seen.add(parent_id)
+        parent = parent_store.get(hit.chunk.source_id, parent_id)
+        if parent is not None:
+            parents.append(parent)
+    return parents
+
+
+def retrieve_with_parents(
+    query: str,
+    *,
+    university_slug: str,
+    programme_slug: str | None = None,
+    top_k: int | None = None,
+    min_score: float | None = None,
+    embedder: Embedder | None = None,
+    vector_store: VectorStore | None = None,
+    parent_store: ParentStore | None = None,
+) -> RetrievalResult:
+    """Retrieve chunks and attach their deduplicated parent sections."""
+
+    result = retrieve(
+        query,
+        university_slug=university_slug,
+        programme_slug=programme_slug,
+        top_k=top_k,
+        min_score=min_score,
+        embedder=embedder,
+        vector_store=vector_store,
+    )
+    if parent_store is None:
+        parent_store = ParentStore.from_settings()
+    result.parents = expand_to_parents(result.hits, parent_store=parent_store)
+    return result
