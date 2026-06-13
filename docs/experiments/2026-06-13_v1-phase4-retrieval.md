@@ -27,7 +27,9 @@ enforced at the boundary). Deterministic; no `random_state`.
     cosine-similarity placeholder to calibrate against the Phase 7 eval set).
 - **Test / verification:** settings importable; existing suite green.
 - **Expected outcome:** Tunable retrieval; env docs complete.
-- **DONE / DROPPED:**
+- **DONE (commit `c0e9d5b`):** Added `retrieval_top_k` (5) + `retrieval_min_score` (0.3) to
+  `Settings`; documented `RETRIEVAL_TOP_K` + `RETRIEVAL_MIN_SCORE` in `.env.example` (min_score
+  noted as a placeholder to calibrate in Phase 7).
 
 ## 2) Retrieval contracts + logic (app/rag/retrieval.py)
 - **Goal:** Embed -> metadata pre-filter -> dense top-K -> Retrieval Gate, returning scored chunks.
@@ -43,7 +45,10 @@ enforced at the boundary). Deterministic; no `random_state`.
     keyword-only + required.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Scope-required retriever with a deterministic gate.
-- **DONE / DROPPED:**
+- **DONE (commit `c0e9d5b`):** Added `app/rag/retrieval.py` with `RetrievedChunk`, `RetrievalResult`,
+  and `retrieve()` (keyword-only required `university_slug`; reuses `VectorStore.search` filtering
+  and `get_embedder`; gate `sufficient_context = top hit score >= min_score`). Hits rebuilt via
+  `Chunk.model_validate(point.payload)`.
 
 ## 3) Search CLI (scripts/search.py)
 - **Goal:** Manual retrieval/debug entrypoint.
@@ -54,7 +59,9 @@ enforced at the boundary). Deterministic; no `random_state`.
     `sufficient_context`.
 - **Test / verification:** argparse wiring; logic stays in `retrieval.py`.
 - **Expected outcome:** Reproducible manual query path.
-- **DONE / DROPPED:**
+- **DONE (commit `c0e9d5b`):** Added `scripts/search.py` (`python -m scripts.search "<q>"
+  --university <slug> [--programme <slug>]`) printing hits + the gate decision; argparse `--help`
+  verified (no embedder/index touched).
 
 ## 4) Tests (tests/test_retrieval.py) - offline
 - **Goal:** Prove scope isolation, top-K, and the gate offline.
@@ -66,4 +73,9 @@ enforced at the boundary). Deterministic; no `random_state`.
     `university_slug` required (`TypeError`).
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; scope + gate behavior covered.
-- **DONE / DROPPED:**
+- **DONE (commit `c0e9d5b`):** Added `tests/test_retrieval.py` (7 tests: institution isolation,
+  university+programme isolation, top_k, gate pass at min_score=-1.0, gate refuse at min_score=1.01,
+  unknown-scope empty+insufficient, required `university_slug`).
+  - Metric / result: `pytest` -> 56 passed (49 prior + 7 new), fully offline.
+  - Decision: Phase 4 complete. Phase 4b adds parent-document expansion; Phase 5 builds `/ask` on
+    top of `sufficient_context`.
