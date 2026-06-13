@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     chunk_max_tokens: int = 600
     chunk_overlap_tokens: int = 80
 
+    embedding_provider: str = "fastembed"
+    embedding_model: str = "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    embedding_batch_size: int = 32
+    qdrant_path: str = "data/index/qdrant"
+    qdrant_collection: str = "uniapply_chunks"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
