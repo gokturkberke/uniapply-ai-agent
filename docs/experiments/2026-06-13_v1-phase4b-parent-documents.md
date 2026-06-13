@@ -25,7 +25,8 @@ parents into Qdrant; NO hybrid/rerank (V2). Deterministic; no new `Settings` fie
     return the parent or `None` (missing file or id). Only referenced sources are read.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Parent lookups without loading the whole corpus.
-- **DONE / DROPPED:**
+- **DONE (commit `c5bd701`):** Added `app/rag/parents.py` with `ParentStore` (lazy per-source load
+  + cache, `get`, `from_settings`). Only referenced source files are read.
 
 ## 2) Extend retrieval with parent expansion (app/rag/retrieval.py)
 - **Goal:** Turn matched chunks into deduplicated parent context.
@@ -39,7 +40,9 @@ parents into Qdrant; NO hybrid/rerank (V2). Deterministic; no new `Settings` fie
     (default `ParentStore.from_settings()`); same required `university_slug`.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Grounding context (parents) available without changing `retrieve`.
-- **DONE / DROPPED:**
+- **DONE (commit `c5bd701`):** Added `parents` field to `RetrievalResult` (default empty),
+  `expand_to_parents` (dedupe by parent_id in rank order, skip missing), and
+  `retrieve_with_parents`. `retrieve` behavior unchanged.
 
 ## 3) Surface parents in the search CLI (scripts/search.py)
 - **Goal:** Show parent context in the debug entrypoint.
@@ -49,7 +52,8 @@ parents into Qdrant; NO hybrid/rerank (V2). Deterministic; no new `Settings` fie
     snippet) alongside hits and the gate decision. Display change only.
 - **Test / verification:** argparse wiring intact.
 - **Expected outcome:** Manual runs show chunks + parent sections.
-- **DONE / DROPPED:**
+- **DONE (commit `c5bd701`):** `scripts/search.py` now uses `retrieve_with_parents` and prints the
+  deduplicated parent sections alongside hits + the gate decision. `--help` verified.
 
 ## 4) Tests
 - **Goal:** Prove parent lookup + expansion offline.
@@ -62,4 +66,8 @@ parents into Qdrant; NO hybrid/rerank (V2). Deterministic; no new `Settings` fie
     artifacts in a tmp `chunk_dir`) populates deduped `parents` while `hits` are unchanged.
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; dedup/order/skip + end-to-end expansion covered.
-- **DONE / DROPPED:**
+- **DONE (commit `c5bd701`):** Added `tests/test_parents.py` (get / unknown id / missing file) and
+  extended `tests/test_retrieval.py` (`expand_to_parents` dedupe + skip-missing; `retrieve_with_parents`
+  end-to-end populates deduped parents, hits unchanged).
+  - Metric / result: `pytest` -> 61 passed (56 prior + 5 new), fully offline.
+  - Decision: Phase 4b complete; retrieval is done. Phase 5 (`/ask`) consumes `retrieve_with_parents`.
