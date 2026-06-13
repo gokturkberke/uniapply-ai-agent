@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     qdrant_path: str = "data/index/qdrant"
     qdrant_collection: str = "uniapply_chunks"
 
+    retrieval_top_k: int = 5
+    retrieval_min_score: float = 0.3
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
