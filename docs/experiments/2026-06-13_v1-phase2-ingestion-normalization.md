@@ -97,3 +97,17 @@ committed); no chunking, embeddings, vector DB, or LLM (Phase 3+).
   - Metric / result: `pytest` -> 28 passed (20 prior + 8 new). Warnings: pre-existing
     Starlette/httpx + harmless PyMuPDF SWIG-binding deprecations.
   - Decision: Phase 2 complete; normalized Markdown is the input for Phase 3 (chunking + index).
+
+## 6) Document new Settings in .env.example (follow-up)
+- **Goal:** Satisfy the repo rule that `.env.example` documents every available variable. The
+  `registry_path` (Phase 1) and `raw_dir` / `normalized_dir` (Phase 2, item 1) settings were
+  added to `Settings` but not yet documented.
+- **Files:** `.env.example`.
+- **Steps:**
+  - Add `REGISTRY_PATH=data/registry/sources.json`, `RAW_DIR=data/raw`,
+    `NORMALIZED_DIR=data/normalized` under a "Registry & ingestion paths" section (active
+    settings, not future placeholders).
+- **Test / verification:** every `Settings` field has a matching documented variable; `pytest`
+  stays green (no behavior change).
+- **Expected outcome:** `.env.example` is complete; configuration stays discoverable.
+- **DONE / DROPPED:**
