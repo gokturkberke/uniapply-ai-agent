@@ -98,4 +98,6 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
     `_citation_grounding` false for out-of-context, refused questions excluded from citation/faithfulness.
 - **Test / verification:** reproduced the inflated recall first; `pytest` green after.
 - **Expected outcome:** Metrics reflect true recall and citation grounding; multi-hop no longer overstated.
-- **DONE / DROPPED:**
+- **DONE (commit `07bd4db`):** `retrieval_recall` is now true recall (reproduced the inflated 1.0 first;
+  now 0.5 for 1-of-2); added `citation_recall` + `citation_grounding_rate` (target 1.0) and the
+  per-question source-id lists. `pytest` -> 99 passed.
