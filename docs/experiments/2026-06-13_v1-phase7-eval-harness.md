@@ -83,3 +83,19 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
   - Metric / result: `pytest` -> 96 passed (91 prior + 5 new), fully offline.
   - Decision: Phase 7 complete; V1 engineering surface closed. The real baseline run awaits a curated
     corpus + 50-question gold set (user step), then `python -m scripts.evaluate --run-label baseline`.
+
+## 5) Metrics-correctness patch (pre-PR)
+- **Goal:** Fix a review finding before opening the PR: `retrieval_recall` was a hit-rate (any expected
+  source present), overstating multi-hop baselines; and the plan's "citation grounding" metric was not
+  in the report.
+- **Files:** `app/rag/evaluation.py`, `scripts/evaluate.py`, `tests/test_evaluation.py`.
+- **Steps:**
+  - True per-question `retrieval_recall = |expected ∩ retrieved| / |expected|` (mean in the report).
+  - Add `citation_recall = |expected ∩ cited| / |expected|` and `citation_grounding = cited ⊆ retrieved`
+    (rate in the report); add `citation_grounding_rate` target 1.0.
+  - Per-question result now carries `expected_source_ids`, `retrieved_source_ids`, `cited_source_ids`.
+  - CLI prints the new metrics; tests: partial recall 0.5 (1 of 2 expected retrieved/cited),
+    `_citation_grounding` false for out-of-context, refused questions excluded from citation/faithfulness.
+- **Test / verification:** reproduced the inflated recall first; `pytest` green after.
+- **Expected outcome:** Metrics reflect true recall and citation grounding; multi-hop no longer overstated.
+- **DONE / DROPPED:**

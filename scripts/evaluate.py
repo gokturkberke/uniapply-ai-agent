@@ -40,10 +40,12 @@ def main() -> None:
     report_path.write_text(report.model_dump_json(indent=2), encoding="utf-8")
 
     print(f"Evaluated {report.total} questions -> {report_path}")
-    print(f"retrieval_recall  = {report.retrieval_recall:.3f} (target {TARGETS['retrieval_recall']})")
-    print(f"refusal_accuracy  = {report.refusal_accuracy:.3f} (target {TARGETS['refusal_accuracy']})")
-    print(f"faithfulness_rate = {report.faithfulness_rate:.3f} (target {TARGETS['faithfulness_rate']})")
-    print(f"by_category       = {report.by_category}")
+    print(f"retrieval_recall        = {report.retrieval_recall:.3f} (target {TARGETS['retrieval_recall']})")
+    print(f"citation_recall         = {report.citation_recall:.3f}")
+    print(f"citation_grounding_rate = {report.citation_grounding_rate:.3f} (target {TARGETS['citation_grounding_rate']})")
+    print(f"refusal_accuracy        = {report.refusal_accuracy:.3f} (target {TARGETS['refusal_accuracy']})")
+    print(f"faithfulness_rate       = {report.faithfulness_rate:.3f} (target {TARGETS['faithfulness_rate']})")
+    print(f"by_category             = {report.by_category}")
 
 
 if __name__ == "__main__":

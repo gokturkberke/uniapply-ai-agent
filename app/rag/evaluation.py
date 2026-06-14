@@ -18,7 +18,12 @@ from app.rag.generation import LLMClient, format_context, generate_grounded_answ
 from app.rag.retrieval import RetrievalResult, retrieve_with_parents
 
 # RAG-Triad-style reference targets (notes 03 §6 / 04 §9).
-TARGETS = {"faithfulness_rate": 0.95, "retrieval_recall": 0.90, "refusal_accuracy": 1.0}
+TARGETS = {
+    "faithfulness_rate": 0.95,
+    "retrieval_recall": 0.90,
+    "refusal_accuracy": 1.0,
+    "citation_grounding_rate": 1.0,
+}
 
 
 class GoldQuestion(BaseModel):
@@ -41,13 +46,23 @@ class FaithfulnessVerdict(BaseModel):
 
 
 class QuestionResult(BaseModel):
-    """Per-question evaluation outcome."""
+    """Per-question evaluation outcome.
+
+    Float metrics are ``None`` when not applicable: retrieval/citation recall need
+    expected source ids; citation grounding and faithfulness need an answered (not
+    refused) question.
+    """
 
     id: str
     category: str
     refused: bool
     refusal_correct: bool
-    retrieval_hit: bool | None
+    expected_source_ids: list[str]
+    retrieved_source_ids: list[str]
+    cited_source_ids: list[str]
+    retrieval_recall: float | None
+    citation_recall: float | None
+    citation_grounding: bool | None
     faithful: bool | None
 
 
@@ -56,6 +71,8 @@ class EvalReport(BaseModel):
 
     total: int
     retrieval_recall: float
+    citation_recall: float
+    citation_grounding_rate: float
     refusal_accuracy: float
     faithfulness_rate: float
     by_category: dict[str, int]
@@ -111,6 +128,22 @@ def _rate(flags: list[bool]) -> float:
     return sum(flags) / len(flags) if flags else 0.0
 
 
+def _mean(values: list[float]) -> float:
+    return sum(values) / len(values) if values else 0.0
+
+
+def _recall(expected: set[str], actual: set[str]) -> float:
+    """Fraction of expected source ids present in ``actual`` (expected must be non-empty)."""
+
+    return len(expected & actual) / len(expected)
+
+
+def _citation_grounding(cited: set[str], retrieved: set[str]) -> bool:
+    """True when every cited source id is present in the retrieved context."""
+
+    return cited.issubset(retrieved)
+
+
 def _aggregate(results: list[QuestionResult]) -> EvalReport:
     by_category: dict[str, int] = {}
     for result in results:
@@ -118,7 +151,11 @@ def _aggregate(results: list[QuestionResult]) -> EvalReport:
 
     return EvalReport(
         total=len(results),
-        retrieval_recall=_rate([r.retrieval_hit for r in results if r.retrieval_hit is not None]),
+        retrieval_recall=_mean([r.retrieval_recall for r in results if r.retrieval_recall is not None]),
+        citation_recall=_mean([r.citation_recall for r in results if r.citation_recall is not None]),
+        citation_grounding_rate=_rate(
+            [r.citation_grounding for r in results if r.citation_grounding is not None]
+        ),
         refusal_accuracy=_rate([r.refusal_correct for r in results]),
         faithfulness_rate=_rate([r.faithful for r in results if r.faithful is not None]),
         by_category=by_category,
@@ -147,13 +184,19 @@ def evaluate_gold_set(
         )
         refused = answer.insufficient_context
 
-        retrieval_hit: bool | None = None
-        if question.expected_source_ids:
-            retrieved = {hit.chunk.source_id for hit in retrieval_result.hits}
-            retrieval_hit = bool(set(question.expected_source_ids) & retrieved)
+        expected = set(question.expected_source_ids)
+        retrieved = {hit.chunk.source_id for hit in retrieval_result.hits}
+        cited = {citation.source_id for citation in answer.citations}
 
+        retrieval_recall = _recall(expected, retrieved) if expected else None
+
+        citation_recall: float | None = None
+        citation_grounding: bool | None = None
         faithful: bool | None = None
         if not refused:
+            citation_grounding = _citation_grounding(cited, retrieved)
+            if expected:
+                citation_recall = _recall(expected, cited)
             verdict = judge_faithfulness(
                 question.question, answer.answer, retrieval_result, judge_client=judge_client
             )
@@ -165,7 +208,12 @@ def evaluate_gold_set(
                 category=question.category,
                 refused=refused,
                 refusal_correct=refused == question.should_refuse,
-                retrieval_hit=retrieval_hit,
+                expected_source_ids=question.expected_source_ids,
+                retrieved_source_ids=sorted(retrieved),
+                cited_source_ids=sorted(cited),
+                retrieval_recall=retrieval_recall,
+                citation_recall=citation_recall,
+                citation_grounding=citation_grounding,
                 faithful=faithful,
             )
         )
