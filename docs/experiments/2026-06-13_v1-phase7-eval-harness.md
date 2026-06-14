@@ -27,7 +27,8 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
   `EVAL_RUNS_DIR` in `.env.example`; gitignore `data/eval/` and `docs/experiments/runs/`.
 - **Test / verification:** settings importable; existing suite green.
 - **Expected outcome:** Configurable, isolated eval set + run outputs.
-- **DONE / DROPPED:**
+- **DONE (commit `8b89779`):** Added `eval_gold_path` + `eval_runs_dir` to `Settings`; documented
+  `EVAL_GOLD_PATH` + `EVAL_RUNS_DIR` in `.env.example`; gitignored `data/eval/` + `docs/experiments/runs/`.
 
 ## 2) Eval contracts + harness (app/rag/evaluation.py)
 - **Goal:** Gold-set loader, metrics, and an aggregated report, reusing the serving pipeline.
@@ -46,7 +47,9 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
     aggregate overall + per category.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Deterministic offline harness producing an `EvalReport`.
-- **DONE / DROPPED:**
+- **DONE (commit `8b89779`):** Added `app/rag/evaluation.py` with `GoldQuestion`/`load_gold_set`,
+  `FaithfulnessVerdict`/`judge_faithfulness`, `QuestionResult`/`EvalReport`/`TARGETS`, and
+  `evaluate_gold_set` (deterministic metrics + judged faithfulness; injectable `retrieve_fn` + clients).
 
 ## 3) CLI + synthetic gold fixture
 - **Goal:** A runnable evaluation entrypoint + offline test data.
@@ -59,7 +62,9 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
     question (`should_refuse=true`).
 - **Test / verification:** CLI runs against an empty/absent gold set without error.
 - **Expected outcome:** Reproducible eval entrypoint + synthetic gold data.
-- **DONE / DROPPED:**
+- **DONE (commit `8b89779`):** Added `scripts/evaluate.py` (`python -m scripts.evaluate --run-label`;
+  writes `report.json`, prints metrics vs `TARGETS`; "Nothing to evaluate" on empty/absent gold set,
+  verified offline) and `tests/fixtures/eval/gold_sample.jsonl` (a factual + an out-of-scope question).
 
 ## 4) Tests (offline; MockLLM)
 - **Goal:** Prove loader + judge + aggregation offline.
@@ -72,4 +77,9 @@ endpoints, no new deps, no real Anthropic calls in tests. Deterministic (no samp
   refused with `retrieval_hit is None` and `faithful is None`.
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; metrics/aggregation/refusal-eval covered.
-- **DONE / DROPPED:**
+- **DONE (commit `8b89779`):** Added `tests/test_evaluation.py` (loader parse + malformed-line +
+  missing-file; judge verdict; `evaluate_gold_set` aggregation -> recall/refusal/faithfulness all 1.0
+  on the synthetic gold set; out-of-scope refused with `retrieval_hit`/`faithful` None).
+  - Metric / result: `pytest` -> 96 passed (91 prior + 5 new), fully offline.
+  - Decision: Phase 7 complete; V1 engineering surface closed. The real baseline run awaits a curated
+    corpus + 50-question gold set (user step), then `python -m scripts.evaluate --run-label baseline`.
