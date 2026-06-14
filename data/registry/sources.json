@@ -1,1 +1,80 @@
-[]
+[
+  {
+    "source_id": "konstanz-cis-official-programme-page",
+    "title": "University of Konstanz - M.Sc. Computer and Information Science (programme page)",
+    "university_slug": "university-of-konstanz",
+    "programme_slug": "msc-computer-and-information-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://www.uni-konstanz.de/en/study/before-you-study/study-programmes/detail/computer-and-information-science/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "konstanz-msc-cis.html"
+  },
+  {
+    "source_id": "uni-assist-vpd-konstanz-cis",
+    "title": "uni-assist - Plan your application (VPD guidance)",
+    "university_slug": "university-of-konstanz",
+    "programme_slug": "msc-computer-and-information-science",
+    "source_type": "vpd_info",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-vpd.html"
+  },
+  {
+    "source_id": "uni-assist-processing-time-konstanz-cis",
+    "title": "uni-assist - Deadlines and processing time",
+    "university_slug": "university-of-konstanz",
+    "programme_slug": "msc-computer-and-information-science",
+    "source_type": "deadline_schedule",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/deadlines-processing-time/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-deadlines-processing-time.html"
+  },
+  {
+    "source_id": "paderborn-cs-official-programme-page",
+    "title": "Paderborn University - M.Sc. Computer Science (programme page)",
+    "university_slug": "paderborn-university",
+    "programme_slug": "msc-computer-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://www.uni-paderborn.de/en/studyoffer/course_of_study/computer-science-master",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "paderborn-msc-cs.html"
+  },
+  {
+    "source_id": "uni-assist-vpd-paderborn-cs",
+    "title": "uni-assist - Plan your application (VPD guidance)",
+    "university_slug": "paderborn-university",
+    "programme_slug": "msc-computer-science",
+    "source_type": "vpd_info",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-vpd.html"
+  },
+  {
+    "source_id": "uni-assist-processing-time-paderborn-cs",
+    "title": "uni-assist - Deadlines and processing time",
+    "university_slug": "paderborn-university",
+    "programme_slug": "msc-computer-science",
+    "source_type": "deadline_schedule",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/deadlines-processing-time/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-deadlines-processing-time.html"
+  }
+]

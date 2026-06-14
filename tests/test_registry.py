@@ -91,6 +91,18 @@ def test_non_list_payload_raises(tmp_path: Path) -> None:
         load_registry(manifest)
 
 
-def test_committed_empty_manifest_loads_to_empty_list() -> None:
-    # The committed production manifest starts empty until URLs are verified.
-    assert load_registry(COMMITTED_MANIFEST) == []
+def test_committed_manifest_holds_verified_cs_corpus() -> None:
+    # The committed production manifest holds the verified Computer Science
+    # mini-corpus: six programme-scoped sources across University of Konstanz
+    # and Paderborn University.
+    sources = load_registry(COMMITTED_MANIFEST)
+
+    assert len(sources) == 6
+    assert {s.source_id for s in sources} == {
+        "konstanz-cis-official-programme-page",
+        "uni-assist-vpd-konstanz-cis",
+        "uni-assist-processing-time-konstanz-cis",
+        "paderborn-cs-official-programme-page",
+        "uni-assist-vpd-paderborn-cs",
+        "uni-assist-processing-time-paderborn-cs",
+    }
