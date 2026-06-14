@@ -49,7 +49,10 @@ until explicitly approved**, and only if Phase A shows flakiness.
     `options` object), so Phase B would add them as top-level body fields.
 - **Test / verification:** findings recorded here; no behavior change.
 - **Expected outcome:** confirms Phase A needs no code, and Phase B is a small additive change.
-- **DONE / DROPPED:**
+- **DONE (commit `707ab0d`):** Confirmed the local client sends only `model`/`max_tokens`/`messages`
+  (no `temperature`/`seed`); constructor and `get_llm_client` carry no sampling args; `config.py` has no
+  sampling fields. Phase A needs no code; Phase B (if reached) is a small additive change adding top-level
+  OpenAI-compatible `temperature`/`seed`.
 
 ## 2) Phase A - current-behavior stability smoke (qwen3:1.7b, N=5, no code)
 - **Goal:** Quantify `qwen3:1.7b` stability under current unpinned sampling.
@@ -77,7 +80,19 @@ until explicitly approved**, and only if Phase A shows flakiness.
 - **Test / verification:** matrix filled; stable/flaky classification stated.
 - **Expected outcome:** a definitive stability read for the current default; drives the decision and
   whether Phase B is needed.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Ran on a dedicated `:8011` instance (no `--reload`), model verified
+  `qwen3:1.7b` via `ollama ps` (~1.9 GB, 100% GPU). N=5 serial per probe, all HTTP 200, no Ollama
+  500/timeout, no observable malformed JSON:
+  - Probe 1 (eligibility/points): **5/5 grounded**, citation `konstanz-cis-official-programme-page`,
+    latency ~4.9-9.1 s (cold first run ~9 s).
+  - Probe 2 (uni-assist timing): **4/5 grounded** (citation `uni-assist-processing-time-konstanz-cis`),
+    **1/5 over-refused** (run5: `insufficient_context=true`, `citations=[]`), latency ~4.0-5.1 s.
+  - Probe 3 (Harvard MBA): **5/5 exact refusal** (`insufficient_context=true`, `citations=[]`),
+    latency ~3.5-6.4 s.
+  - **Classification: FLAKY** (probe 2 is 4/5, < 5/5). Better than `qwen2.5:3b` (1/5) and `llama3.2:3b`
+    (3/5) from the comparison slice, but not deterministic. The lone over-refusal is generation-side
+    (retrieval was independently confirmed sufficient for this query in the comparison slice). Per the
+    decision rule this points to Phase B; **PAUSED for explicit confirmation before any Phase B code.**
 
 ## 3) Phase B1 - PROPOSED deterministic-sampling implementation (conditional; do NOT code until approved)
 - **Goal:** Allow pinning local sampling so a deterministic smoke is possible - **only if Phase A is
@@ -130,9 +145,9 @@ until explicitly approved**, and only if Phase A shows flakiness.
 ## Stability matrix (filled during execution; shape-level evidence only)
 | phase | probe | grounded/refused count (of 5) | citation source_id | refusal exact | latency range (s) | JSON/500/timeout | fan/heat | notes |
 |---|---|---|---|---|---|---|---|---|
-| A (unpinned) | eligibility/points | | | - | | | | |
-| A (unpinned) | uni-assist timing | | | - | | | | |
-| A (unpinned) | Harvard MBA refusal | | - | | | | | |
+| A (unpinned) | eligibility/points | grounded 5/5 | konstanz-cis-official-programme-page | - | ~4.9-9.1 | all 200, no 500/timeout | light (inferred) | stable on this probe |
+| A (unpinned) | uni-assist timing | grounded 4/5, refused 1/5 | uni-assist-processing-time-konstanz-cis (4/5) | - | ~4.0-5.1 | all 200, no 500/timeout | light (inferred) | run5 over-refused -> FLAKY |
+| A (unpinned) | Harvard MBA refusal | refused 5/5 | - | yes 5/5 | ~3.5-6.4 | all 200, no 500/timeout | light (inferred) | exact refusal every run |
 | B (temp0/seed42) | eligibility/points | | | - | | | | only if Phase A flaky + B1 approved |
 | B (temp0/seed42) | uni-assist timing | | | - | | | | only if Phase A flaky + B1 approved |
 | B (temp0/seed42) | Harvard MBA refusal | | - | | | | | only if Phase A flaky + B1 approved |
