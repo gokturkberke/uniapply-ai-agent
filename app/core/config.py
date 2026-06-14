@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.3
 
+    llm_provider: str = "anthropic"
+    anthropic_model: str = "claude-opus-4-8"
+    anthropic_api_key: str | None = None
+    llm_max_tokens: int = 4096
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

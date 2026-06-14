@@ -16,6 +16,9 @@ markdownify>=1.2,<2.0
 fastembed>=0.8,<0.9  # ONNX embeddings (multilingual MiniLM)
 qdrant-client>=1.18,<2.0  # local/embedded mode (no Docker)
 
+# LLM / grounded generation
+anthropic>=0.109,<1.0  # official SDK; native structured outputs (messages.parse)
+
 # Testing
 pytest>=8.2,<9.0
 httpx>=0.27,<1.0  # required by fastapi.testclient.TestClient
