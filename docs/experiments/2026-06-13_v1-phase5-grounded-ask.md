@@ -31,7 +31,10 @@ context only; on insufficient context, return the exact refusal string.
   - Document `LLM_PROVIDER`, `ANTHROPIC_MODEL`, `LLM_MAX_TOKENS`, `ANTHROPIC_API_KEY` in `.env.example`.
 - **Test / verification:** `pip install -r requirements.txt`; existing suite green; every Settings field documented.
 - **Expected outcome:** Typed, documented LLM config; structured-output mechanism chosen and recorded.
-- **DONE / DROPPED:**
+- **DONE (commit `168a53d`):** Added `anthropic` (0.109.1) to requirements (pinned `>=0.109,<1.0`);
+  verified `messages.parse(output_format=...)` IS available -> using native structured outputs
+  (parsed object on `block.parsed_output`). Added `llm_provider`/`anthropic_model`
+  (`claude-opus-4-8`)/`anthropic_api_key`/`llm_max_tokens` to `Settings`; documented all four in `.env.example`.
 
 ## 2) Generation core (app/rag/generation.py)
 - **Goal:** Provider-agnostic grounded generation with an offline-testable mock.
@@ -50,7 +53,10 @@ context only; on insufficient context, return the exact refusal string.
     citations whose `source_id` is absent from the retrieved context.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Deterministic refusal + grounded synthesis behind an abstraction.
-- **DONE / DROPPED:**
+- **DONE (commit `168a53d`):** Added `app/rag/generation.py` with the contracts, `REFUSAL_MESSAGE`
+  + `DISCLAIMER`, `LLMClient` protocol, `MockLLMClient`, `AnthropicLLMClient` (lazy, `messages.parse`),
+  `get_llm_client`, `build_grounded_prompt` (six-point contract), and `generate_grounded_answer`
+  (gate refusal without an LLM call + citation grounding guard).
 
 ## 3) /ask endpoint (app/api/schemas.py, app/api/routes.py)
 - **Goal:** Thin `POST /ask` wiring retrieval + generation.
@@ -64,7 +70,9 @@ context only; on insufficient context, return the exact refusal string.
     provider/LLM logic in the route.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Working grounded endpoint; `app/api` stays thin.
-- **DONE / DROPPED:**
+- **DONE (commit `168a53d`):** Added `AskRequest`/`AskResponse` to `schemas.py` and a thin `POST /ask`
+  to `routes.py` wiring `provide_retriever` + `provide_llm_client` dependencies (overridable);
+  maps `GroundedAnswer` + request scope + `DISCLAIMER` to `AskResponse`. `university_slug` required.
 
 ## 4) Tests (offline; MockLLM)
 - **Goal:** Prove refusal + grounded answer + validation offline.
@@ -77,4 +85,9 @@ context only; on insufficient context, return the exact refusal string.
     + `insufficient_context=True`, LLM not called; missing `university_slug` / empty question -> 422.
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; refusal/answer/validation/grounding covered.
-- **DONE / DROPPED:**
+- **DONE (commit `168a53d`):** Added `tests/test_generation.py` (refusal-without-LLM, grounded answer,
+  hallucinated-citation drop, prompt contents) and `tests/test_ask_endpoint.py` (`TestClient` +
+  `dependency_overrides`: 200 grounded answer, refusal path, 422 missing university_slug / empty question).
+  - Metric / result: `pytest` -> 69 passed (61 prior + 8 new), fully offline.
+  - Decision: Phase 5 complete; `/ask` is the first grounded endpoint. Phase 6 (checklist/email)
+    reuses this `LLMClient` + structured-output pattern.
