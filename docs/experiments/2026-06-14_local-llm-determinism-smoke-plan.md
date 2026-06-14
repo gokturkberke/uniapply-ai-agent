@@ -115,7 +115,11 @@ until explicitly approved**, and only if Phase A shows flakiness.
 - **Constraints:** additive only; no change to retrieval/endpoints/schemas/artifacts; Mock + Anthropic
   paths untouched; default behavior identical unless the env vars are set; no new dependency.
 - **Test / verification:** `pytest` green (existing 111 + new payload tests).
-- **DONE / DROPPED:**
+- **DROPPED (2026-06-14):** Moved to a separate code slice per request. Phase A confirmed `qwen3:1.7b`
+  flaky, which justifies the deterministic-sampling implementation, but the code is split out so this
+  docs-only branch stays Phase-A-only. The full B1 spec now lives in
+  `docs/experiments/2026-06-14_local-llm-deterministic-sampling-plan.md` (branch
+  `feat/local-llm-deterministic-sampling`).
 
 ## 4) Phase B2 - deterministic N=5 re-run (conditional; after B1 lands)
 - **Goal:** Re-measure stability with pinned sampling and compare to Phase A.
@@ -125,7 +129,8 @@ until explicitly approved**, and only if Phase A shows flakiness.
   probes N=5 serially; fill the matrix; compare grounded-consistency vs Phase A.
 - **Test / verification:** matrix filled; A-vs-B consistency delta stated.
 - **Expected outcome:** either 5/5 grounded (deterministic smoke recommended) or still flaky.
-- **DONE / DROPPED:**
+- **DROPPED (2026-06-14):** Moved to the Phase B plan (`2026-06-14_local-llm-deterministic-sampling-plan.md`);
+  the B2 deterministic re-run executes there, after B1 lands on `feat/local-llm-deterministic-sampling`.
 
 ## 5) Decision + record (docs-only)
 - **Goal:** Record the stability read and the decision; change no product default.
@@ -140,7 +145,10 @@ until explicitly approved**, and only if Phase A shows flakiness.
 - **Files:** this plan (DONE markers + matrix); optionally a one-line pointer in
   `docs/experiments/local-llm-smoke.md` if a deterministic smoke is recommended.
 - **Test / verification:** decision captured; default unchanged in this slice.
-- **DONE / DROPPED:**
+- **DROPPED (2026-06-14):** Phase A's read is recorded (Item 2: `qwen3:1.7b` flaky, 4/5 on the uni-assist
+  probe). The deterministic-sampling decision (B2 5/5 -> recommend; still flaky -> laptop-safe demo only +
+  consider `LLM_MAX_TOKENS=1024`) is carried into the Phase B plan
+  (`2026-06-14_local-llm-deterministic-sampling-plan.md`); the model default is not changed in either slice.
 
 ## Stability matrix (filled during execution; shape-level evidence only)
 | phase | probe | grounded/refused count (of 5) | citation source_id | refusal exact | latency range (s) | JSON/500/timeout | fan/heat | notes |
