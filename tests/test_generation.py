@@ -124,6 +124,25 @@ def test_model_insufficient_flag_is_normalized_to_refusal() -> None:
     assert answer.citations == []
 
 
+def test_refuses_when_all_citations_out_of_context() -> None:
+    # The model answered but cited only sources absent from the context -> grounding
+    # leaves zero citations -> refuse rather than return an uncited answer.
+    canned = GroundedAnswer(
+        answer="Confident but uncited.",
+        citations=[Citation(source_id="hallucinated-src", heading_path=["X"])],
+        insufficient_context=False,
+        confidence=0.9,
+    )
+
+    answer = generate_grounded_answer(
+        "q", _result(sufficient=True), llm_client=MockLLMClient(canned)
+    )
+
+    assert answer.answer == REFUSAL_MESSAGE
+    assert answer.insufficient_context is True
+    assert answer.citations == []
+
+
 def test_prompt_includes_context_and_refusal_instruction() -> None:
     system, user = build_grounded_prompt("What IELTS score?", _result(sufficient=True))
 

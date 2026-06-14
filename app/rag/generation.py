@@ -115,6 +115,43 @@ def get_llm_client(settings: Settings | None = None) -> LLMClient:
     raise ValueError(f"unknown llm_provider: {settings.llm_provider!r}")
 
 
+def format_context(retrieval_result: RetrievalResult) -> str:
+    """Format retrieved parent sections into a labeled context block for prompts.
+
+    Shared by grounded Q&A and the artifact generators. Each block is labeled with
+    its source id, authority (primary/secondary), and heading path.
+    """
+
+    authority_by_source = {
+        hit.chunk.source_id: hit.chunk.source_authority.value
+        for hit in retrieval_result.hits
+    }
+    blocks: list[str] = []
+    for parent in retrieval_result.parents:
+        heading = " > ".join(parent.heading_path) or "(no heading)"
+        authority = authority_by_source.get(parent.source_id, "unknown")
+        blocks.append(
+            f"[source: {parent.source_id} | authority: {authority} | section: {heading}]\n"
+            f"{parent.text}"
+        )
+    return "\n\n---\n\n".join(blocks) if blocks else "(no context)"
+
+
+def is_groundable(retrieval_result: RetrievalResult) -> bool:
+    """True when there is grounding context to answer from (gate passed + parents present)."""
+
+    return retrieval_result.sufficient_context and bool(retrieval_result.parents)
+
+
+def ground_citations(
+    citations: list[Citation], retrieval_result: RetrievalResult
+) -> list[Citation]:
+    """Drop citations whose source id is not present in the retrieved context."""
+
+    allowed_sources = {parent.source_id for parent in retrieval_result.parents}
+    return [citation for citation in citations if citation.source_id in allowed_sources]
+
+
 def build_grounded_prompt(question: str, retrieval_result: RetrievalResult) -> tuple[str, str]:
     """Build the (system, user) prompt enforcing the grounded-answering contract."""
 
@@ -132,22 +169,7 @@ def build_grounded_prompt(question: str, retrieval_result: RetrievalResult) -> t
         "5. Do not infer eligibility, admission outcomes, or legal certainties.\n"
         "6. Cite only sources present in the context, by their source id."
     )
-
-    authority_by_source = {
-        hit.chunk.source_id: hit.chunk.source_authority.value
-        for hit in retrieval_result.hits
-    }
-    blocks: list[str] = []
-    for parent in retrieval_result.parents:
-        heading = " > ".join(parent.heading_path) or "(no heading)"
-        authority = authority_by_source.get(parent.source_id, "unknown")
-        blocks.append(
-            f"[source: {parent.source_id} | authority: {authority} | section: {heading}]\n"
-            f"{parent.text}"
-        )
-    context = "\n\n---\n\n".join(blocks) if blocks else "(no context)"
-
-    user = f"Question:\n{question}\n\nContext:\n{context}"
+    user = f"Question:\n{question}\n\nContext:\n{format_context(retrieval_result)}"
     return system, user
 
 
@@ -177,15 +199,17 @@ def generate_grounded_answer(
     the retrieved context is dropped (guard against hallucinated citations).
     """
 
-    if not retrieval_result.sufficient_context or not retrieval_result.parents:
+    if not is_groundable(retrieval_result):
         return _refusal_answer()
 
     system, user = build_grounded_prompt(question, retrieval_result)
     answer = llm_client.generate(system=system, user=user, output_model=GroundedAnswer)
 
-    if answer.insufficient_context:
+    # A grounded answer must cite at least one in-context source. If the model
+    # reported insufficient context, or none of its citations survive the grounding
+    # filter, refuse rather than return an uncited answer.
+    grounded = ground_citations(answer.citations, retrieval_result)
+    if answer.insufficient_context or not grounded:
         return _refusal_answer()
 
-    allowed_sources = {parent.source_id for parent in retrieval_result.parents}
-    grounded_citations = [c for c in answer.citations if c.source_id in allowed_sources]
-    return answer.model_copy(update={"citations": grounded_citations})
+    return answer.model_copy(update={"citations": grounded})

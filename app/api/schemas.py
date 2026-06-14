@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, Field
 
+from app.rag.artifacts import ChecklistItem
 from app.rag.generation import Citation
 
 
@@ -33,6 +34,67 @@ class AskResponse(BaseModel):
     citations: list[Citation]
     insufficient_context: bool
     confidence: float
+    university_slug: str
+    programme_slug: str | None
+    disclaimer: str
+
+
+class ChecklistRequest(BaseModel):
+    """Request body for ``/checklist`` (per-programme)."""
+
+    university_slug: str = Field(min_length=1)
+    programme_slug: str = Field(min_length=1)
+
+
+class ChecklistResponse(BaseModel):
+    """A grounded per-programme application checklist."""
+
+    items: list[ChecklistItem]
+    citations: list[Citation]
+    insufficient_context: bool
+    university_slug: str
+    programme_slug: str
+    disclaimer: str
+
+
+class DetectMissingRequest(BaseModel):
+    """Request body for ``/detect-missing``."""
+
+    university_slug: str = Field(min_length=1)
+    programme_slug: str = Field(min_length=1)
+    profile: list[str] = Field(
+        default_factory=list,
+        description="Documents/credentials the applicant already has.",
+    )
+
+
+class DetectMissingResponse(BaseModel):
+    """Required items split into missing vs satisfied for an applicant profile."""
+
+    missing: list[str]
+    satisfied: list[str]
+    citations: list[Citation]
+    insufficient_context: bool
+    university_slug: str
+    programme_slug: str
+    disclaimer: str
+
+
+class EmailRequest(BaseModel):
+    """Request body for ``/draft-email``."""
+
+    university_slug: str = Field(min_length=1)
+    programme_slug: str | None = None
+    topic: str = Field(min_length=1, description="What the email should ask or state.")
+
+
+class EmailResponse(BaseModel):
+    """A source-anchored formal email draft to the admissions office."""
+
+    subject: str
+    body: str
+    citations: list[Citation]
+    insufficient_context: bool
     university_slug: str
     programme_slug: str | None
     disclaimer: str

@@ -4,8 +4,24 @@ from typing import Protocol
 
 from fastapi import APIRouter, Depends
 
-from app.api.schemas import AskRequest, AskResponse, HealthResponse
+from app.api.schemas import (
+    AskRequest,
+    AskResponse,
+    ChecklistRequest,
+    ChecklistResponse,
+    DetectMissingRequest,
+    DetectMissingResponse,
+    EmailRequest,
+    EmailResponse,
+    HealthResponse,
+)
 from app.core.config import Settings, get_settings
+from app.rag.artifacts import (
+    REQUIREMENTS_QUERY,
+    detect_missing_documents,
+    draft_email,
+    generate_checklist,
+)
 from app.rag.generation import (
     DISCLAIMER,
     LLMClient,
@@ -77,6 +93,82 @@ def ask(
         citations=answer.citations,
         insufficient_context=answer.insufficient_context,
         confidence=answer.confidence,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+        disclaimer=DISCLAIMER,
+    )
+
+
+@router.post("/checklist", response_model=ChecklistResponse, tags=["rag"])
+def checklist(
+    request: ChecklistRequest,
+    retriever: Retriever = Depends(provide_retriever),
+    llm_client: LLMClient = Depends(provide_llm_client),
+) -> ChecklistResponse:
+    """Generate a grounded per-programme application checklist, or refuse."""
+
+    retrieval_result = retriever(
+        REQUIREMENTS_QUERY,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+    )
+    result = generate_checklist(retrieval_result, llm_client=llm_client)
+    return ChecklistResponse(
+        items=result.items,
+        citations=result.citations,
+        insufficient_context=result.insufficient_context,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+        disclaimer=DISCLAIMER,
+    )
+
+
+@router.post("/detect-missing", response_model=DetectMissingResponse, tags=["rag"])
+def detect_missing(
+    request: DetectMissingRequest,
+    retriever: Retriever = Depends(provide_retriever),
+    llm_client: LLMClient = Depends(provide_llm_client),
+) -> DetectMissingResponse:
+    """Compare an applicant profile against retrieved requirements, or refuse."""
+
+    retrieval_result = retriever(
+        REQUIREMENTS_QUERY,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+    )
+    result = detect_missing_documents(
+        request.profile, retrieval_result, llm_client=llm_client
+    )
+    return DetectMissingResponse(
+        missing=result.missing,
+        satisfied=result.satisfied,
+        citations=result.citations,
+        insufficient_context=result.insufficient_context,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+        disclaimer=DISCLAIMER,
+    )
+
+
+@router.post("/draft-email", response_model=EmailResponse, tags=["rag"])
+def draft_email_endpoint(
+    request: EmailRequest,
+    retriever: Retriever = Depends(provide_retriever),
+    llm_client: LLMClient = Depends(provide_llm_client),
+) -> EmailResponse:
+    """Draft a source-anchored formal email to the admissions office, or refuse."""
+
+    retrieval_result = retriever(
+        request.topic,
+        university_slug=request.university_slug,
+        programme_slug=request.programme_slug,
+    )
+    result = draft_email(request.topic, retrieval_result, llm_client=llm_client)
+    return EmailResponse(
+        subject=result.subject,
+        body=result.body,
+        citations=result.citations,
+        insufficient_context=result.insufficient_context,
         university_slug=request.university_slug,
         programme_slug=request.programme_slug,
         disclaimer=DISCLAIMER,
