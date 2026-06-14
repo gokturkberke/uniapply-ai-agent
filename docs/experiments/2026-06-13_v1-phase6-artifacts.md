@@ -26,7 +26,9 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
   (source-id filter, from inside `generate_grounded_answer`); have both existing functions call them.
 - **Test / verification:** existing `/ask` + generation tests stay green (no behavior change).
 - **Expected outcome:** Shared, reusable helpers; identical `/ask` behavior.
-- **DONE / DROPPED:**
+- **DONE (commit `b2ced02`):** Extracted `format_context`, `is_groundable`, and `ground_citations`
+  in `generation.py`; refactored `build_grounded_prompt` + `generate_grounded_answer` to use them.
+  `/ask` + generation tests unchanged/green.
 
 ## 2) Artifact schemas + services (app/rag/artifacts.py)
 - **Goal:** Grounded, cited structured outputs for the three artifacts, behind the Phase 5 pattern.
@@ -43,7 +45,9 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
   - Module constant for the canned requirements retrieval query.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Three service functions producing grounded artifacts or refusals.
-- **DONE / DROPPED:**
+- **DONE (commit `b2ced02`):** Added `app/rag/artifacts.py` with the three schemas and
+  `generate_checklist` / `detect_missing_documents` / `draft_email` (refuse without LLM when not
+  groundable; normalize model-insufficient to refusal; `ground_citations`). `REQUIREMENTS_QUERY` constant.
 
 ## 3) Endpoints (app/api/schemas.py, app/api/routes.py)
 - **Goal:** Thin `POST /checklist`, `/detect-missing`, `/draft-email` wiring retrieval + services.
@@ -58,7 +62,10 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
     response + `DISCLAIMER`. Reuse `provide_retriever` + `provide_llm_client`.
 - **Test / verification:** see item 4.
 - **Expected outcome:** Three grounded endpoints; `app/api` thin.
-- **DONE / DROPPED:**
+- **DONE (commit `b2ced02`):** Added the three request/response schema pairs and thin `POST /checklist`,
+  `/detect-missing`, `/draft-email` routes reusing `provide_retriever` + `provide_llm_client`;
+  checklist/detect-missing require `programme_slug`, email optional. Route fn `draft_email_endpoint`
+  avoids shadowing the imported `draft_email`.
 
 ## 4) Tests (offline; MockLLM)
 - **Goal:** Prove refusal + grounded payload + validation offline for all three.
@@ -71,4 +78,9 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
     empty required fields -> 422.
 - **Test / verification:** `pytest` all green, fully offline, prior tests untouched.
 - **Expected outcome:** Green suite; refusal/payload/validation/grounding covered for all three.
-- **DONE / DROPPED:**
+- **DONE (commit `b2ced02`):** Added `tests/test_artifacts.py` (service refusal/payload/grounding/
+  normalization) and `tests/test_artifact_endpoints.py` (`TestClient` + overrides: 200 payload,
+  refusal without LLM, 422 missing programme_slug / topic).
+  - Metric / result: `pytest` -> 87 passed (71 prior + 16 new), fully offline.
+  - Decision: Phase 6 complete; V1 product surface done (Q&A + checklist + detect-missing + email).
+    Phase 7 (eval harness) is next.
