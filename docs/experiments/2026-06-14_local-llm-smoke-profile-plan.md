@@ -135,13 +135,23 @@ provider plan (`2026-06-14_free-local-llm-baseline-plan.md`); both remain histor
     / grounded+cited / refused) - **no admission facts, no gold-set questions, no committed report**.
 - **Test / verification:** `pytest` green; smoke outcomes summarized in the DONE marker only.
 - **Expected outcome:** a recorded, reproducible laptop-safe smoke result (or the exact command to run it later).
-- **DONE (commit `5049841`):** `pytest` -> 111 passed (mandatory gate met). No local server was reachable
-  (`localhost:11434` and `:1234` both refused), so per the plan the smoke was **not run**; the CS index is
-  present (`data/index/qdrant`, gitignored). To run the laptop-safe smoke later: `ollama serve` +
-  `ollama pull qwen3:1.7b`, then start the API with
-  `LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 uvicorn app.main:app` and run
-  the four serial probes from `docs/experiments/local-llm-smoke.md` one at a time (do not parallelize).
-  No report is committed; record rough latency + per-probe pass/fail here when run.
+- **DONE (commit `5049841`):** `pytest` -> 111 passed (mandatory gate met). Smoke run was deferred at
+  implementation time (no local server reachable); the user later ran it on the merged code (below).
+- **Smoke run (recorded post-merge):** model `qwen3:1.7b`, `LLM_MAX_TOKENS=768`, serial, against the local
+  CS index (`data/index/qdrant`, gitignored). All four probes **passed**:
+  - Probe 1 health: ok, `time_total` ~0.010 s.
+  - Probe 2 (eligibility / points system): `insufficient_context=false`, citation `source_id`
+    `konstanz-cis-official-programme-page`, ~7.53 s (cold; includes model load).
+  - Probe 3 (uni-assist timing): `insufficient_context=false`, citation `source_id`
+    `uni-assist-processing-time-konstanz-cis`, ~4.67 s; warm re-run ~4.51 s.
+  - Probe 4 (Harvard MBA tuition): `answer` exactly "Information not found in the official documents.",
+    `insufficient_context=true`, `citations=[]`, ~6.55 s.
+  - Latency: ~4.5-7.5 s per answer serial, vs the earlier `qwen3:4b` run at ~55-75 s with noticeable
+    fan/heat - `qwen3:1.7b` is materially more laptop-safe, confirming the hypothesis. No report committed.
+  - Observation (not a blocker, out of scope here): citation `source_id`s are correct, but `heading_path`
+    sometimes arrives as a single string containing `">"` rather than a list of separate components.
+    Grounding is `source_id`-based so this does not affect the smoke; it is a candidate future
+    citation-polish item (would need its own plan; no product code changed here).
 
 ## Non-goals
 - Do NOT run the full 12-question eval/judge baseline (`scripts.evaluate`) in this slice.

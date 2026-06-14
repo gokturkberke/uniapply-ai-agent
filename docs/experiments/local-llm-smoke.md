@@ -75,3 +75,9 @@ curl -s -w "\n time_total=%{time_total}s\n" localhost:8000/ask \
   refuses only because of truncation, raise `LLM_MAX_TOKENS` to `1024` and re-run that probe.
 - Record latency roughly (cold vs warm). Do not optimize here - performance tuning is separate work.
 - This runbook does not run `scripts.evaluate`; the full 12-question eval/judge baseline is out of scope.
+- Verified run (`qwen3:1.7b`, `LLM_MAX_TOKENS=768`, serial): all four probes passed; ~4.5-7.5 s per
+  answer (vs ~55-75 s for `qwen3:4b`). Full per-probe results are recorded in
+  `docs/experiments/2026-06-14_local-llm-smoke-profile-plan.md` (Item 4).
+- Known observation (not a blocker): a citation's `source_id` is correct, but its `heading_path` may
+  arrive as a single `">"`-joined string instead of a list of components. Grounding is `source_id`-based,
+  so this does not affect the smoke; it is a candidate future citation-polish item.
