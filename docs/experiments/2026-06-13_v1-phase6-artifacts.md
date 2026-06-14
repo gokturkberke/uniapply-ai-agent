@@ -96,4 +96,6 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
   Extracted `_checklist_refusal` / `_missing_refusal` / `_email_refusal`. Regression tests for all four.
 - **Test / verification:** reproduced all four first; `pytest` green after.
 - **Expected outcome:** No non-refusal answer/artifact is ever returned without at least one in-context citation.
-- **DONE / DROPPED:**
+- **DONE (commit `bc6591d`):** `/ask` + all three artifacts now refuse when no citation survives the
+  grounding filter (or the model flagged insufficient). Reproduced all four pre-fix; confirmed fixed.
+  `pytest` -> 91 passed.
