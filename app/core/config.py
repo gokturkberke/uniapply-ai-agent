@@ -39,10 +39,14 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.3
 
-    llm_provider: Literal["anthropic", "mock"] = "anthropic"
+    llm_provider: Literal["anthropic", "mock", "local_openai"] = "anthropic"
     anthropic_model: str = "claude-opus-4-8"
     anthropic_api_key: str | None = None
     llm_max_tokens: int = 4096
+
+    local_llm_base_url: str = "http://localhost:11434/v1"
+    local_llm_model: str = "qwen3:4b"
+    local_llm_api_key: str = "ollama"
 
     eval_gold_path: str = "data/eval/gold.jsonl"
     eval_runs_dir: str = "docs/experiments/runs"

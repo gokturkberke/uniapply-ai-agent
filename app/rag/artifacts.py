@@ -16,6 +16,7 @@ from app.rag.generation import (
     format_context,
     ground_citations,
     is_groundable,
+    safe_generate,
 )
 from app.rag.retrieval import RetrievalResult
 
@@ -88,7 +89,9 @@ def generate_checklist(
         + _CONTRACT
     )
     user = f"Context:\n{format_context(retrieval_result)}"
-    result = llm_client.generate(system=system, user=user, output_model=Checklist)
+    result = safe_generate(
+        llm_client, system=system, user=user, output_model=Checklist, fallback=_checklist_refusal()
+    )
 
     grounded = ground_citations(result.citations, retrieval_result)
     if result.insufficient_context or not grounded:
@@ -115,7 +118,13 @@ def detect_missing_documents(
         f"Applicant profile (already have):\n{profile_text}\n\n"
         f"Context:\n{format_context(retrieval_result)}"
     )
-    result = llm_client.generate(system=system, user=user, output_model=MissingDocsResult)
+    result = safe_generate(
+        llm_client,
+        system=system,
+        user=user,
+        output_model=MissingDocsResult,
+        fallback=_missing_refusal(),
+    )
 
     grounded = ground_citations(result.citations, retrieval_result)
     if result.insufficient_context or not grounded:
@@ -137,7 +146,9 @@ def draft_email(
         "provided context and cite its source.\n" + _CONTRACT
     )
     user = f"Email topic:\n{topic}\n\nContext:\n{format_context(retrieval_result)}"
-    result = llm_client.generate(system=system, user=user, output_model=EmailDraft)
+    result = safe_generate(
+        llm_client, system=system, user=user, output_model=EmailDraft, fallback=_email_refusal()
+    )
 
     grounded = ground_citations(result.citations, retrieval_result)
     if result.insufficient_context or not grounded:

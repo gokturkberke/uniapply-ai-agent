@@ -14,7 +14,12 @@ from typing import Literal
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.config import get_settings
-from app.rag.generation import LLMClient, format_context, generate_grounded_answer
+from app.rag.generation import (
+    LLMClient,
+    format_context,
+    generate_grounded_answer,
+    safe_generate,
+)
 from app.rag.retrieval import RetrievalResult, retrieve_with_parents
 
 # RAG-Triad-style reference targets (notes 03 §6 / 04 §9).
@@ -119,8 +124,14 @@ def judge_faithfulness(
         f"Question:\n{question}\n\nAnswer:\n{answer}\n\n"
         f"Context:\n{format_context(retrieval_result)}"
     )
-    return judge_client.generate(
-        system=system, user=user, output_model=FaithfulnessVerdict
+    return safe_generate(
+        judge_client,
+        system=system,
+        user=user,
+        output_model=FaithfulnessVerdict,
+        fallback=FaithfulnessVerdict(
+            supported=False, reasoning="conservative fallback: unparseable judge output"
+        ),
     )
 
 
