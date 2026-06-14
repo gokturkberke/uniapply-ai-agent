@@ -103,4 +103,6 @@ context only; on insufficient context, return the exact refusal string.
   - tests: regression tests for both grounding holes.
 - **Test / verification:** reproduced both holes first; `pytest` green after the fix.
 - **Expected outcome:** Answers are always grounded-or-refused; unknown provider rejected at load.
-- **DONE / DROPPED:**
+- **DONE (commit `1a32379`):** Refuse when `parents` empty (no LLM call); normalize model
+  `insufficient_context=True` to the exact refusal; `llm_provider` is now `Literal["anthropic","mock"]`.
+  Both holes reproduced pre-fix and confirmed fixed; unknown provider raises `ValidationError`. `pytest` -> 71 passed.
