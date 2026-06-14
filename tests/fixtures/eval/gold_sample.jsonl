@@ -1,0 +1,2 @@
+{"id": "q-factual-1", "question": "What IELTS score is required?", "university_slug": "uni-alpha", "programme_slug": "msc-data-science", "category": "factual", "expected_source_ids": ["alpha-src"], "should_refuse": false}
+{"id": "q-oos-1", "question": "What are the study visa rules for Canada?", "university_slug": "uni-alpha", "programme_slug": "msc-data-science", "category": "out_of_scope", "expected_source_ids": [], "should_refuse": true}

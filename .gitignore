@@ -44,6 +44,10 @@ data/raw/
 data/normalized/
 data/chunks/
 data/index/
+data/eval/
+
+# Evaluation run outputs (committed plans live in docs/experiments/, not the runs)
+docs/experiments/runs/
 
 # OS
 .DS_Store

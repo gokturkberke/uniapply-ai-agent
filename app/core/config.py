@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = None
     llm_max_tokens: int = 4096
 
+    eval_gold_path: str = "data/eval/gold.jsonl"
+    eval_runs_dir: str = "docs/experiments/runs"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
