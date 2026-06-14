@@ -57,7 +57,10 @@ provider plan (`2026-06-14_free-local-llm-baseline-plan.md`); both remain histor
 - **Test / verification:** findings recorded here; no behavior change.
 - **Expected outcome:** confirms this is a default-flip + docs slice; nothing in retrieval/endpoints/
   artifacts/providers needs to move.
-- **DONE / DROPPED:**
+- **DONE (commit `86283ee`):** Confirmed `LLM_MAX_TOKENS` and `LOCAL_LLM_MODEL` are already env-readable
+  `Settings` fields (the local client already forwards `max_tokens`), pinned the `/health` + `/ask` smoke
+  surface and the real Konstanz/Paderborn scopes/source_ids, and confirmed no test asserts the
+  `local_llm_model` default string. No behavior change; this is a default-flip + docs slice.
 
 ## 2) Config default + `.env.example` (recommend the lightweight demo model)
 - **Goal:** Make `qwen3:1.7b` the recommended laptop-safe local default while keeping `qwen3:4b`
@@ -75,7 +78,11 @@ provider plan (`2026-06-14_free-local-llm-baseline-plan.md`); both remain histor
 - **Test / verification:** `pytest` stays green (no model-string assertions); a one-line check that
   `Settings(llm_provider="local_openai").local_llm_model == "qwen3:1.7b"`.
 - **Expected outcome:** the out-of-the-box local profile is laptop-safe; `qwen3:4b` remains a documented opt-in.
-- **DONE / DROPPED:**
+- **DONE (commit `5049841`):** Flipped `local_llm_model` default to `"qwen3:1.7b"` (`config.py`); updated
+  `.env.example` to `LOCAL_LLM_MODEL=qwen3:1.7b` with the model recommendations (qwen3:1.7b default,
+  qwen3:4b optional, gemma3:1b fallback, llama3.2:3b comparison) and the `LLM_MAX_TOKENS=768` demo-budget
+  note. `pytest` -> 111 passed (no model-string assertions);
+  `Settings(llm_provider="local_openai").local_llm_model == "qwen3:1.7b"` confirmed.
 
 ## 3) Docs: `docs/experiments/local-llm-smoke.md` (exact serial commands)
 - **Goal:** A short, copy-pasteable runbook for a laptop-safe smoke/demo, with no eval harness.
@@ -110,7 +117,11 @@ provider plan (`2026-06-14_free-local-llm-baseline-plan.md`); both remain histor
     local request already produced an Ollama 500.
 - **Test / verification:** doc is fact-free and self-consistent with the real scopes/source_ids from Item 1.
 - **Expected outcome:** anyone can run a laptop-safe smoke in minutes without the eval harness.
-- **DONE / DROPPED:**
+- **DONE (commit `5049841`):** Added `docs/experiments/local-llm-smoke.md`: prerequisites, `ollama pull
+  qwen3:1.7b`, the `LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 uvicorn` run
+  line, four serial probes (health + 2 live-verified grounded `/ask` + 1 refusal) with rough latency
+  capture, and the shape-only assertion contract (verbatim only for the refusal string). Serial-only and
+  truncation-is-a-smoke-result notes included; no admission facts asserted.
 
 ## 4) Verify + conditional smoke run
 - **Goal:** Green tests are a hard gate; a real serial smoke only if Ollama + a small model are available.
@@ -124,7 +135,13 @@ provider plan (`2026-06-14_free-local-llm-baseline-plan.md`); both remain histor
     / grounded+cited / refused) - **no admission facts, no gold-set questions, no committed report**.
 - **Test / verification:** `pytest` green; smoke outcomes summarized in the DONE marker only.
 - **Expected outcome:** a recorded, reproducible laptop-safe smoke result (or the exact command to run it later).
-- **DONE / DROPPED:**
+- **DONE (commit `5049841`):** `pytest` -> 111 passed (mandatory gate met). No local server was reachable
+  (`localhost:11434` and `:1234` both refused), so per the plan the smoke was **not run**; the CS index is
+  present (`data/index/qdrant`, gitignored). To run the laptop-safe smoke later: `ollama serve` +
+  `ollama pull qwen3:1.7b`, then start the API with
+  `LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 uvicorn app.main:app` and run
+  the four serial probes from `docs/experiments/local-llm-smoke.md` one at a time (do not parallelize).
+  No report is committed; record rough latency + per-probe pass/fail here when run.
 
 ## Non-goals
 - Do NOT run the full 12-question eval/judge baseline (`scripts.evaluate`) in this slice.
