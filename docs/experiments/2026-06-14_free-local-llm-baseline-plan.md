@@ -38,7 +38,8 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
   - Existing safe shapes: `_refusal_answer()` (generation), `_checklist_refusal` / `_missing_refusal` /
     `_email_refusal` (artifacts). `AnthropicLLMClient.generate` raises `ValueError` on no-parsed-output.
 - **Test / verification:** findings recorded here; no behavior change.
-- **DONE / DROPPED:**
+- **DONE (commit `dfae3ae`):** Inspected the seams; confirmed `httpx` is already a dependency (no new
+  dep), the single `generate(output_model=T)` seam, the five call sites, and the existing refusal shapes.
 
 ## 2) Config (`app/core/config.py`, `.env.example`)
 - **Goal:** Configure the local provider; no secrets, no new deps.
@@ -47,7 +48,8 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
   `local_llm_base_url: str = "http://localhost:11434/v1"`, `local_llm_model: str = "qwen3:4b"`,
   `local_llm_api_key: str = "ollama"`; reuse `llm_max_tokens`. Document `LLM_PROVIDER` (3 options),
   `LOCAL_LLM_BASE_URL`, `LOCAL_LLM_MODEL`, `LOCAL_LLM_API_KEY` in `.env.example` with Ollama + LM Studio notes.
-- **DONE / DROPPED:**
+- **DONE (commit `66cd93d`):** Added the three `local_llm_*` settings, extended `llm_provider` to
+  `Literal["anthropic","mock","local_openai"]`, and documented the local provider in `.env.example`.
 
 ## 3) Local provider + safe fallback (`app/rag/generation.py`; wire call sites)
 - **Goal:** OpenAI-compatible client behind the generic seam, with an explicit, narrow error model.
@@ -66,7 +68,10 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
   `httpx.Client` or injected for tests); add `safe_generate`; add the `local_openai` branch to
   `get_llm_client`; route the five call sites through `safe_generate` with their existing refusal shapes
   (judge fallback = `FaithfulnessVerdict(supported=False, reasoning="conservative fallback: unparseable judge output")`).
-- **DONE / DROPPED:**
+- **DONE (commit `66cd93d`):** Added `LLMOutputError`, `_extract_json`, `LocalOpenAICompatibleLLMClient`
+  (httpx; converts only HTTP/shape/JSON/validation failures to `LLMOutputError`), `safe_generate`
+  (catches only `LLMOutputError`), and the `local_openai` branch. Wired the five call sites through
+  `safe_generate`; Mock/Anthropic paths unchanged (they never raise `LLMOutputError`).
 
 ## 4) Tests (`tests/test_local_llm.py`, new; offline via `httpx.MockTransport`)
 - **Goal:** Prove the provider, extraction, and safe fallback with no running server.
@@ -80,7 +85,10 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
   - **Selection:** `get_llm_client("local_openai")` -> `LocalOpenAICompatibleLLMClient`.
   - **Unaffected paths:** `get_llm_client("mock"|"anthropic")` still return their types; the existing
     full suite passes unchanged (Mock + Anthropic behavior preserved).
-- **DONE / DROPPED:**
+- **DONE (commit `66cd93d`):** Added `tests/test_local_llm.py` (offline, `httpx.MockTransport`): happy
+  path, fence/prose tolerance, `_extract_json` helper, malformed shape / HTTP 500 / invalid JSON /
+  schema-invalid -> `LLMOutputError` -> safe refusal + judge `supported=False`, and provider selection
+  (local / mock / anthropic). `pytest` -> 111 passed (99 prior + 12 new), fully offline.
 
 ## 5) Docs: `.env.example` local baseline + gold-set summary
 - **Goal:** Make the local baseline runnable from docs; publish a fact-free gold-set summary.
@@ -88,7 +96,8 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
 - **Steps:** the summary contains **only** counts, categories, scopes (university_slug / programme_slug),
   referenced `source_id`s, and notes. It contains **no question answers and no admission facts**
   (deadlines, fees, requirements, etc.). The gold set itself (`data/eval/gold.jsonl`) stays gitignored.
-- **DONE / DROPPED:**
+- **DONE (commit `66cd93d`):** Added `docs/experiments/eval-goldset-summary.md` (counts/categories/
+  scopes/source_ids/notes only; no answers/facts) from the current 12-question gold set; gold set stays gitignored.
 
 ## 6) Verify + conditional local baseline run
 - **Goal:** Green tests are a hard gate; a real-ish baseline only if a local server is available.
@@ -100,7 +109,12 @@ mini-corpus baseline plan (`docs/experiments/2026-06-13_*`), which remains histo
     `LLM_PROVIDER=local_openai LOCAL_LLM_BASE_URL=http://localhost:11434/v1 LOCAL_LLM_MODEL=qwen3:4b LOCAL_LLM_API_KEY=ollama python -m scripts.evaluate --run-label cs-mini-corpus-local-qwen3-4b-baseline`.
     The report writes to `docs/experiments/runs/cs-mini-corpus-local-qwen3-4b-baseline/report.json`,
     which is **gitignored and NOT committed** (summarize numbers in the DONE marker instead).
-- **DONE / DROPPED:**
+- **DONE (commit `66cd93d`):** `pytest` -> 111 passed (mandatory gate met). No local server was
+  reachable (`localhost:11434` and `:1234` both refused), so per the plan the baseline was **not run**.
+  The local CS index dir is present (`data/index/qdrant`, gitignored) from the CS baseline. To produce
+  the baseline once a local model is available (e.g. `ollama serve` + `ollama pull qwen3:4b`):
+  `LLM_PROVIDER=local_openai LOCAL_LLM_BASE_URL=http://localhost:11434/v1 LOCAL_LLM_MODEL=qwen3:4b LOCAL_LLM_API_KEY=ollama python -m scripts.evaluate --run-label cs-mini-corpus-local-qwen3-4b-baseline`
+  -> writes `docs/experiments/runs/cs-mini-corpus-local-qwen3-4b-baseline/report.json` (gitignored; not committed).
 
 ## Notes / caveats (stated explicitly)
 - **Mock smoke is not a quality baseline** - it only proves pipeline wiring; real metrics need a real LLM.
