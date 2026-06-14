@@ -7,9 +7,12 @@ offline; the real ``AnthropicLLMClient`` is lazily constructed and uses the SDK'
 native structured outputs (``messages.parse``, verified against anthropic>=0.109).
 """
 
+import json
+import re
 from typing import Protocol, TypeVar
 
-from pydantic import BaseModel
+import httpx
+from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings, get_settings
 from app.rag.retrieval import RetrievalResult
@@ -93,6 +96,89 @@ class AnthropicLLMClient:
         )
 
 
+class LLMOutputError(Exception):
+    """Raised when a provider's raw output cannot be parsed/validated into the schema."""
+
+
+def _extract_json(text: str) -> str:
+    """Extract one JSON object from model text, tolerating ```json fences / prose."""
+
+    stripped = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(\{.*\})\s*```", stripped, re.DOTALL)
+    if fenced:
+        return fenced.group(1)
+    start = stripped.find("{")
+    end = stripped.rfind("}")
+    if start != -1 and end > start:
+        return stripped[start : end + 1]
+    raise LLMOutputError("no JSON object found in model output")
+
+
+class LocalOpenAICompatibleLLMClient:
+    """OpenAI-compatible chat client (Ollama / LM Studio) over httpx.
+
+    Local models are unreliable with strict structured output, so the JSON schema is
+    embedded in the prompt and the reply is JSON-extracted + Pydantic-validated. Any
+    HTTP, response-shape, JSON-decode, or schema-validation failure is converted to
+    ``LLMOutputError`` so callers can fall back to a grounded refusal. No other
+    exception type is produced here.
+    """
+
+    def __init__(
+        self,
+        *,
+        base_url: str,
+        model: str,
+        api_key: str,
+        max_tokens: int,
+        http_client: httpx.Client | None = None,
+    ) -> None:
+        self._base_url = base_url
+        self._model = model
+        self._api_key = api_key
+        self._max_tokens = max_tokens
+        self._http_client = http_client
+
+    def _client(self) -> httpx.Client:
+        if self._http_client is None:
+            self._http_client = httpx.Client(
+                base_url=self._base_url,
+                headers={"Authorization": f"Bearer {self._api_key}"},
+                timeout=httpx.Timeout(120.0),
+            )
+        return self._http_client
+
+    def generate(self, *, system: str, user: str, output_model: type[T]) -> T:
+        system_with_schema = (
+            f"{system}\n\nReturn ONLY a single JSON object that conforms to this JSON "
+            f"Schema. No prose, no markdown fences:\n{json.dumps(output_model.model_json_schema())}"
+        )
+        try:
+            response = self._client().post(
+                "/chat/completions",
+                json={
+                    "model": self._model,
+                    "max_tokens": self._max_tokens,
+                    "messages": [
+                        {"role": "system", "content": system_with_schema},
+                        {"role": "user", "content": user},
+                    ],
+                },
+            )
+            response.raise_for_status()
+            content = response.json()["choices"][0]["message"]["content"]
+        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+            raise LLMOutputError(f"local LLM request/response failure: {exc}") from exc
+
+        if not isinstance(content, str):
+            raise LLMOutputError("local LLM returned non-string message content")
+
+        try:
+            return output_model.model_validate_json(_extract_json(content))
+        except ValidationError as exc:
+            raise LLMOutputError(f"local LLM output failed schema validation: {exc}") from exc
+
+
 def get_llm_client(settings: Settings | None = None) -> LLMClient:
     """Return the LLM client selected by ``llm_provider``."""
 
@@ -112,7 +198,34 @@ def get_llm_client(settings: Settings | None = None) -> LLMClient:
             api_key=settings.anthropic_api_key,
             max_tokens=settings.llm_max_tokens,
         )
+    if settings.llm_provider == "local_openai":
+        return LocalOpenAICompatibleLLMClient(
+            base_url=settings.local_llm_base_url,
+            model=settings.local_llm_model,
+            api_key=settings.local_llm_api_key,
+            max_tokens=settings.llm_max_tokens,
+        )
     raise ValueError(f"unknown llm_provider: {settings.llm_provider!r}")
+
+
+def safe_generate(
+    llm_client: LLMClient,
+    *,
+    system: str,
+    user: str,
+    output_model: type[T],
+    fallback: T,
+) -> T:
+    """Call ``generate``, returning ``fallback`` only on ``LLMOutputError``.
+
+    Only the local provider raises ``LLMOutputError`` (parse/validation failure);
+    Mock and Anthropic never do, so their behavior and unexpected errors are unaffected.
+    """
+
+    try:
+        return llm_client.generate(system=system, user=user, output_model=output_model)
+    except LLMOutputError:
+        return fallback
 
 
 def format_context(retrieval_result: RetrievalResult) -> str:
@@ -203,7 +316,13 @@ def generate_grounded_answer(
         return _refusal_answer()
 
     system, user = build_grounded_prompt(question, retrieval_result)
-    answer = llm_client.generate(system=system, user=user, output_model=GroundedAnswer)
+    answer = safe_generate(
+        llm_client,
+        system=system,
+        user=user,
+        output_model=GroundedAnswer,
+        fallback=_refusal_answer(),
+    )
 
     # A grounded answer must cite at least one in-context source. If the model
     # reported insufficient context, or none of its citations survive the grounding
