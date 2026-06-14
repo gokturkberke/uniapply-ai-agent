@@ -95,6 +95,35 @@ def test_citations_outside_context_are_dropped() -> None:
     assert [c.source_id for c in answer.citations] == [SOURCE_ID]  # hallucination dropped
 
 
+def test_refuses_when_no_parents_even_if_gate_sufficient() -> None:
+    # Parent/artifact drift: gate passes but there is no grounding context.
+    result = _result(sufficient=True).model_copy(update={"parents": []})
+
+    answer = generate_grounded_answer("q", result, llm_client=_BoomLLM())
+
+    assert answer.answer == REFUSAL_MESSAGE  # refuse without calling the LLM
+    assert answer.insufficient_context is True
+    assert answer.citations == []
+
+
+def test_model_insufficient_flag_is_normalized_to_refusal() -> None:
+    # The model judged context insufficient but emitted non-refusal text.
+    canned = GroundedAnswer(
+        answer="Maybe IELTS 6.5.",
+        citations=[Citation(source_id=SOURCE_ID, heading_path=["Language Requirements"])],
+        insufficient_context=True,
+        confidence=0.2,
+    )
+
+    answer = generate_grounded_answer(
+        "q", _result(sufficient=True), llm_client=MockLLMClient(canned)
+    )
+
+    assert answer.answer == REFUSAL_MESSAGE
+    assert answer.insufficient_context is True
+    assert answer.citations == []
+
+
 def test_prompt_includes_context_and_refusal_instruction() -> None:
     system, user = build_grounded_prompt("What IELTS score?", _result(sufficient=True))
 

@@ -91,3 +91,16 @@ context only; on insufficient context, return the exact refusal string.
   - Metric / result: `pytest` -> 69 passed (61 prior + 8 new), fully offline.
   - Decision: Phase 5 complete; `/ask` is the first grounded endpoint. Phase 6 (checklist/email)
     reuses this `LLMClient` + structured-output pattern.
+
+## 5) Code-review fixes: grounding holes + provider type (pre-PR)
+- **Goal:** Close two grounding holes a review reproduced, and tighten the provider type.
+- **Files:** `app/rag/generation.py`, `app/core/config.py`, `tests/test_generation.py`.
+- **Steps:**
+  - generation: refuse without an LLM call when `parents` is empty even if the gate passed
+    (parent/artifact drift -> no grounding context); normalize to the exact refusal when the model
+    returns `insufficient_context=True` (don't pass its free-text through). Extracted `_refusal_answer`.
+  - config: `llm_provider: Literal["anthropic", "mock"]` (fail-fast at settings load).
+  - tests: regression tests for both grounding holes.
+- **Test / verification:** reproduced both holes first; `pytest` green after the fix.
+- **Expected outcome:** Answers are always grounded-or-refused; unknown provider rejected at load.
+- **DONE / DROPPED:**

@@ -151,6 +151,17 @@ def build_grounded_prompt(question: str, retrieval_result: RetrievalResult) -> t
     return system, user
 
 
+def _refusal_answer() -> GroundedAnswer:
+    """The canonical refusal: exact message, no citations, zero confidence."""
+
+    return GroundedAnswer(
+        answer=REFUSAL_MESSAGE,
+        citations=[],
+        insufficient_context=True,
+        confidence=0.0,
+    )
+
+
 def generate_grounded_answer(
     question: str,
     retrieval_result: RetrievalResult,
@@ -159,21 +170,21 @@ def generate_grounded_answer(
 ) -> GroundedAnswer:
     """Synthesize a grounded answer, or refuse when context is insufficient.
 
-    On an insufficient Retrieval Gate, returns the exact refusal without calling the
-    LLM. Otherwise calls the LLM and drops any citation whose source id was not in the
-    retrieved context (grounding guard against hallucinated citations).
+    Refuses without calling the LLM when the Retrieval Gate fails OR there is no
+    grounding context (e.g. parent/artifact drift left ``parents`` empty). Otherwise
+    calls the LLM; if the model itself reports insufficient context, the answer is
+    normalized to the exact refusal; finally any citation whose source id was not in
+    the retrieved context is dropped (guard against hallucinated citations).
     """
 
-    if not retrieval_result.sufficient_context:
-        return GroundedAnswer(
-            answer=REFUSAL_MESSAGE,
-            citations=[],
-            insufficient_context=True,
-            confidence=0.0,
-        )
+    if not retrieval_result.sufficient_context or not retrieval_result.parents:
+        return _refusal_answer()
 
     system, user = build_grounded_prompt(question, retrieval_result)
     answer = llm_client.generate(system=system, user=user, output_model=GroundedAnswer)
+
+    if answer.insufficient_context:
+        return _refusal_answer()
 
     allowed_sources = {parent.source_id for parent in retrieval_result.parents}
     grounded_citations = [c for c in answer.citations if c.source_id in allowed_sources]
