@@ -135,3 +135,40 @@ def test_email_returns_draft_and_drops_bad_citations() -> None:
     assert result.subject == "Question about required documents"
     assert result.body.startswith("Dear Admissions Office")
     assert [c.source_id for c in result.citations] == [SOURCE_ID]
+
+
+# --- no surviving citations -> refuse (all three) --------------------------
+
+def test_checklist_refuses_when_all_citations_out_of_context() -> None:
+    canned = Checklist(
+        items=[ChecklistItem(requirement="x", detail="y")],
+        citations=[_cited("hallucinated-src")],
+        insufficient_context=False,
+    )
+    result = generate_checklist(_result(sufficient=True), llm_client=MockLLMClient(canned))
+    assert result.insufficient_context is True
+    assert result.items == []
+
+
+def test_detect_missing_refuses_when_all_citations_out_of_context() -> None:
+    canned = MissingDocsResult(
+        missing=["IELTS 6.5"],
+        satisfied=["CV"],
+        citations=[_cited("hallucinated-src")],
+        insufficient_context=False,
+    )
+    result = detect_missing_documents(["CV"], _result(sufficient=True), llm_client=MockLLMClient(canned))
+    assert result.insufficient_context is True
+    assert result.missing == [] and result.satisfied == []
+
+
+def test_email_refuses_when_all_citations_out_of_context() -> None:
+    canned = EmailDraft(
+        subject="S",
+        body="B",
+        citations=[_cited("hallucinated-src")],
+        insufficient_context=False,
+    )
+    result = draft_email("topic", _result(sufficient=True), llm_client=MockLLMClient(canned))
+    assert result.insufficient_context is True
+    assert result.subject == "" and result.body == ""

@@ -60,13 +60,27 @@ _CONTRACT = (
 )
 
 
+def _checklist_refusal() -> Checklist:
+    return Checklist(items=[], citations=[], insufficient_context=True)
+
+
+def _missing_refusal() -> MissingDocsResult:
+    return MissingDocsResult(
+        missing=[], satisfied=[], citations=[], insufficient_context=True
+    )
+
+
+def _email_refusal() -> EmailDraft:
+    return EmailDraft(subject="", body="", citations=[], insufficient_context=True)
+
+
 def generate_checklist(
     retrieval_result: RetrievalResult, *, llm_client: LLMClient
 ) -> Checklist:
     """Produce a grounded per-programme application checklist, or refuse."""
 
     if not is_groundable(retrieval_result):
-        return Checklist(items=[], citations=[], insufficient_context=True)
+        return _checklist_refusal()
 
     system = (
         "You are UniApply. Extract the application checklist (required documents, "
@@ -76,11 +90,10 @@ def generate_checklist(
     user = f"Context:\n{format_context(retrieval_result)}"
     result = llm_client.generate(system=system, user=user, output_model=Checklist)
 
-    if result.insufficient_context:
-        return Checklist(items=[], citations=[], insufficient_context=True)
-    return result.model_copy(
-        update={"citations": ground_citations(result.citations, retrieval_result)}
-    )
+    grounded = ground_citations(result.citations, retrieval_result)
+    if result.insufficient_context or not grounded:
+        return _checklist_refusal()
+    return result.model_copy(update={"citations": grounded})
 
 
 def detect_missing_documents(
@@ -89,9 +102,7 @@ def detect_missing_documents(
     """Compare an applicant profile against retrieved requirements, or refuse."""
 
     if not is_groundable(retrieval_result):
-        return MissingDocsResult(
-            missing=[], satisfied=[], citations=[], insufficient_context=True
-        )
+        return _missing_refusal()
 
     system = (
         "You are UniApply. From the context, determine the required documents/credentials "
@@ -106,13 +117,10 @@ def detect_missing_documents(
     )
     result = llm_client.generate(system=system, user=user, output_model=MissingDocsResult)
 
-    if result.insufficient_context:
-        return MissingDocsResult(
-            missing=[], satisfied=[], citations=[], insufficient_context=True
-        )
-    return result.model_copy(
-        update={"citations": ground_citations(result.citations, retrieval_result)}
-    )
+    grounded = ground_citations(result.citations, retrieval_result)
+    if result.insufficient_context or not grounded:
+        return _missing_refusal()
+    return result.model_copy(update={"citations": grounded})
 
 
 def draft_email(
@@ -121,7 +129,7 @@ def draft_email(
     """Draft a formal, source-anchored email to the admissions office, or refuse."""
 
     if not is_groundable(retrieval_result):
-        return EmailDraft(subject="", body="", citations=[], insufficient_context=True)
+        return _email_refusal()
 
     system = (
         "You are UniApply. Draft a concise, formal email from an applicant to the "
@@ -131,8 +139,7 @@ def draft_email(
     user = f"Email topic:\n{topic}\n\nContext:\n{format_context(retrieval_result)}"
     result = llm_client.generate(system=system, user=user, output_model=EmailDraft)
 
-    if result.insufficient_context:
-        return EmailDraft(subject="", body="", citations=[], insufficient_context=True)
-    return result.model_copy(
-        update={"citations": ground_citations(result.citations, retrieval_result)}
-    )
+    grounded = ground_citations(result.citations, retrieval_result)
+    if result.insufficient_context or not grounded:
+        return _email_refusal()
+    return result.model_copy(update={"citations": grounded})

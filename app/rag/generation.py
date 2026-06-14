@@ -205,9 +205,11 @@ def generate_grounded_answer(
     system, user = build_grounded_prompt(question, retrieval_result)
     answer = llm_client.generate(system=system, user=user, output_model=GroundedAnswer)
 
-    if answer.insufficient_context:
+    # A grounded answer must cite at least one in-context source. If the model
+    # reported insufficient context, or none of its citations survive the grounding
+    # filter, refuse rather than return an uncited answer.
+    grounded = ground_citations(answer.citations, retrieval_result)
+    if answer.insufficient_context or not grounded:
         return _refusal_answer()
 
-    return answer.model_copy(
-        update={"citations": ground_citations(answer.citations, retrieval_result)}
-    )
+    return answer.model_copy(update={"citations": grounded})

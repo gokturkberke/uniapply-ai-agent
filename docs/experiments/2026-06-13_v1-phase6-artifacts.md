@@ -84,3 +84,16 @@ NO agent/intent routing, NO auth, NO streaming, NO eval harness (Phase 7), NO ne
   - Metric / result: `pytest` -> 87 passed (71 prior + 16 new), fully offline.
   - Decision: Phase 6 complete; V1 product surface done (Q&A + checklist + detect-missing + email).
     Phase 7 (eval harness) is next.
+
+## 5) Code-review fix: refuse when no citations survive grounding (pre-PR)
+- **Goal:** Enforce the core rule "an answer/artifact must cite sources" at the last step. A review
+  reproduced that when all of a model's citations were out-of-context, `ground_citations` dropped
+  them all yet the result still returned `insufficient_context=False` with a populated, uncited payload.
+- **Files:** `app/rag/generation.py`, `app/rag/artifacts.py`, `tests/test_generation.py`,
+  `tests/test_artifacts.py`.
+- **Steps:** in `generate_grounded_answer` and all three artifact services, compute grounded citations
+  first and refuse (canonical schema refusal) when `insufficient_context` OR no citations survive.
+  Extracted `_checklist_refusal` / `_missing_refusal` / `_email_refusal`. Regression tests for all four.
+- **Test / verification:** reproduced all four first; `pytest` green after.
+- **Expected outcome:** No non-refusal answer/artifact is ever returned without at least one in-context citation.
+- **DONE / DROPPED:**
