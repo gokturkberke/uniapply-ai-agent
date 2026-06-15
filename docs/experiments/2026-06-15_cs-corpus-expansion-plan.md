@@ -66,7 +66,9 @@ uni-assist VPD/processing-time is added per programme only if its official page 
   supports `factual|multi_hop|reformulation|out_of_scope` + `should_refuse`; the current corpus already
   reuses one uni-assist raw file across two scopes -> the same pattern scales with no code change.
 - **Test / verification:** findings recorded; no behavior change.
-- **DONE / DROPPED:**
+- **DONE (commit `31c1817`):** Confirmed adding programmes needs only registry + gold + data (no code):
+  `RegisteredSource` contracts, `load_registry` dedup, `filter_sources` scoping, `GoldQuestion`
+  categories, and the existing uni-assist raw-file reuse across scopes all scale unchanged.
 
 ## 2) Registry expansion + existing-corpus re-validation (`data/registry/sources.json`)
 - **Goal:** Give every programme its official page and attach uni-assist sources **only where confirmed**,
@@ -97,7 +99,13 @@ uni-assist VPD/processing-time is added per programme only if its official page 
   DONE marker (not assumed to be 15).
 - **Expected outcome:** a manifest where every programme carries exactly the sources its official page
   supports (committed only after URLs are real + the pipeline validates).
-- **DONE / DROPPED:**
+- **DONE (recorded):** Final registry = **9 records, 5 programmes**. New: TUM Informatics (+ uni-assist
+  VPD/processing, gate passed), Stuttgart CS (official only), Saarland CS (official only); the user swapped
+  RWTH -> Stuttgart and filled real URLs. Existing re-validation: **removed both Konstanz uni-assist
+  sources** (Konstanz official page has 0 uni-assist/VPD mentions); kept Paderborn's (page routes via
+  uni-assist). Gate evidence (normalized official pages): TUM 10 mentions, Paderborn 2 (route only, no
+  explicit VPD), Konstanz/Stuttgart/Saarland 0. `load_registry` OK (no duplicate), `filter_sources`
+  isolates every scope.
 
 ## 3) Gold-set expansion (`data/eval/gold.jsonl`, gitignored; no fabricated facts)
 - **Goal:** Exercise the new scopes and, above all, the anti-blending rule.
@@ -117,7 +125,12 @@ uni-assist VPD/processing-time is added per programme only if its official page 
   - Eval-set isolation: the gold set stays gitignored and is never used for tuning/few-shot.
 - **Test / verification:** `load_gold_set()` parses every question; category counts match the summary.
 - **Expected outcome:** a gold set that can both reward correct in-scope grounding and catch blending.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Gold set rewritten to **20 questions** (`load_gold_set` parses all; no dangling
+  source refs). Category: factual 13, multi_hop 2, reformulation 1, out_of_scope 4; `should_refuse` 7.
+  Pruned the 3 Konstanz uni-assist questions; added in-scope questions for TUM/Stuttgart/Saarland and
+  single-scope cross-institution VPD traps; converted the Paderborn "VPD docs" question to a
+  VPD-explicit **refusal** (official supports the uni-assist route, not VPD) per the source policy.
+  `eval-goldset-summary.md` updated (counts/scopes/source_ids/policy, fact-free).
 
 ## 4) Manual steps (user) - save raw pages + fill real URLs
 - **Goal:** Provide the real corpus inputs without fabricating them.
@@ -126,7 +139,10 @@ uni-assist VPD/processing-time is added per programme only if its official page 
   to match the saved page; optionally set `last_updated`. The two uni-assist raw files already exist and
   are reused - nothing to re-save for them.
 - **Test / verification:** each `local_path` resolves to a saved file under `data/raw/`.
-- **DONE / DROPPED:**
+- **DONE (recorded):** User saved the 3 official pages and filled real URLs; swapped Stuttgart to the
+  **German** official page (`lang=de`) and Saarland to the **official English** page (`lang=en`) for
+  richer/cleaner content (the initial Stuttgart English page was a stub). All `local_path`s resolve under
+  `data/raw/` (gitignored).
 
 ## 5) Run + validate (pipeline + scoping smoke)
 - **Goal:** Prove the expanded corpus ingests/indexes and stays strictly scoped.
@@ -149,7 +165,16 @@ uni-assist VPD/processing-time is added per programme only if its official page 
 - **Expected outcome:** the pipeline scales to 5 programmes and scoping holds. If a saved page does not
   support an in-scope gold question, the system will (correctly) refuse - prune/adjust that gold question
   rather than asserting a fact not in the corpus.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Clean rebuild from raw+registry (after catching and purging stale Konstanz
+  uni-assist chunk files that had inflated the index to 11 sources): **144 chunks from 9 sources**.
+  `load_registry`(9) + `filter_sources` per scope OK; `load_gold_set`(20) OK. **Retrieval scope checks:
+  every scoped query returned only in-scope `source_id`s - zero cross-institution leakage.** Deterministic
+  LLM smoke (`qwen3:1.7b`, temp0/seed42, dedicated port, model verified via `ollama ps`) - 6/7 exactly per
+  policy: TUM VPD grounded; Paderborn route grounded; Paderborn VPD-explicit / Konstanz VPD / Stuttgart
+  VPD-like-TUM / Konstanz cross-trap all refused with no foreign citation; Stuttgart duration grounded.
+  One miss: Saarland C1 refused though present (small-model grounding-recall on an "at a glance" table;
+  retrieval was sufficient at ~0.49) - a safe failure, not a corpus/scoping defect. (Mock wiring smoke not
+  run separately; the deterministic smoke exercised the full `/ask` path across all five scopes.)
 
 ## 6) Finalize + record
 - **Goal:** Commit the verified corpus + summary + plan markers.
@@ -159,7 +184,10 @@ uni-assist VPD/processing-time is added per programme only if its official page 
 - **Decision:** if scoping holds, the expanded corpus is the new baseline corpus and a quantitative eval
   (full `scripts.evaluate` over the expanded gold set) becomes the natural next slice. If a cross-
   institution probe blends, STOP and write a retrieval-scoping fix plan before committing the corpus.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Scoping holds (zero blending), so the expanded **5-programme** corpus is the new
+  baseline. Committed the verified `data/registry/sources.json` + updated `eval-goldset-summary.md` + this
+  plan's markers (gold stays gitignored); the runbook probe-3 re-scope to Paderborn lands as a separate
+  commit. Next slice: quantitative eval (`scripts.evaluate`) over the expanded gold set.
 
 ## Non-goals
 - No `app/` code changes; no retrieval logic change; no endpoints/schemas/artifacts change; no new dependency.
