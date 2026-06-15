@@ -1,5 +1,7 @@
 """Tests for the local OpenAI-compatible LLM provider (offline via httpx.MockTransport)."""
 
+import json
+
 import httpx
 import pytest
 
@@ -177,3 +179,66 @@ def test_get_llm_client_selects_local() -> None:
 def test_get_llm_client_mock_and_anthropic_unaffected() -> None:
     assert isinstance(get_llm_client(Settings(llm_provider="mock")), MockLLMClient)
     assert isinstance(get_llm_client(Settings(llm_provider="anthropic")), AnthropicLLMClient)
+
+
+# --- sampling payload (temperature / seed) ---------------------------------
+
+def _capturing_client(*, temperature=None, seed=None):  # type: ignore[no-untyped-def]
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["body"] = json.loads(request.content)
+        return httpx.Response(
+            200, json={"choices": [{"message": {"content": VALID_ANSWER_JSON}}]}
+        )
+
+    http_client = httpx.Client(
+        transport=httpx.MockTransport(handler), base_url="http://local.test/v1"
+    )
+    client = LocalOpenAICompatibleLLMClient(
+        base_url="http://local.test/v1",
+        model="qwen3:1.7b",
+        api_key="ollama",
+        max_tokens=256,
+        temperature=temperature,
+        seed=seed,
+        http_client=http_client,
+    )
+    return client, captured
+
+
+def test_payload_includes_temperature_and_seed_when_set() -> None:
+    client, captured = _capturing_client(temperature=0.5, seed=42)
+
+    client.generate(system="s", user="u", output_model=GroundedAnswer)
+
+    assert captured["body"]["temperature"] == 0.5
+    assert captured["body"]["seed"] == 42
+
+
+def test_payload_omits_temperature_and_seed_when_unset() -> None:
+    client, captured = _capturing_client()
+
+    client.generate(system="s", user="u", output_model=GroundedAnswer)
+
+    assert "temperature" not in captured["body"]
+    assert "seed" not in captured["body"]
+
+
+def test_payload_includes_temperature_zero() -> None:
+    client, captured = _capturing_client(temperature=0.0)
+
+    client.generate(system="s", user="u", output_model=GroundedAnswer)
+
+    assert captured["body"]["temperature"] == 0.0
+    assert "seed" not in captured["body"]
+
+
+def test_get_llm_client_passes_sampling_settings_through() -> None:
+    client = get_llm_client(
+        Settings(llm_provider="local_openai", local_llm_temperature=0.0, local_llm_seed=42)
+    )
+
+    assert isinstance(client, LocalOpenAICompatibleLLMClient)
+    assert client._temperature == 0.0
+    assert client._seed == 42

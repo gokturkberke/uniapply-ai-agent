@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     local_llm_base_url: str = "http://localhost:11434/v1"
     local_llm_model: str = "qwen3:1.7b"
     local_llm_api_key: str = "ollama"
+    local_llm_temperature: float | None = None
+    local_llm_seed: int | None = None
 
     eval_gold_path: str = "data/eval/gold.jsonl"
     eval_runs_dir: str = "docs/experiments/runs"
