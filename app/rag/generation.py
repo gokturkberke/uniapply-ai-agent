@@ -131,12 +131,16 @@ class LocalOpenAICompatibleLLMClient:
         model: str,
         api_key: str,
         max_tokens: int,
+        temperature: float | None = None,
+        seed: int | None = None,
         http_client: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url
         self._model = model
         self._api_key = api_key
         self._max_tokens = max_tokens
+        self._temperature = temperature
+        self._seed = seed
         self._http_client = http_client
 
     def _client(self) -> httpx.Client:
@@ -153,18 +157,21 @@ class LocalOpenAICompatibleLLMClient:
             f"{system}\n\nReturn ONLY a single JSON object that conforms to this JSON "
             f"Schema. No prose, no markdown fences:\n{json.dumps(output_model.model_json_schema())}"
         )
+        body: dict[str, object] = {
+            "model": self._model,
+            "max_tokens": self._max_tokens,
+            "messages": [
+                {"role": "system", "content": system_with_schema},
+                {"role": "user", "content": user},
+            ],
+        }
+        # Pin sampling only when configured; ``is not None`` so temperature=0.0 is kept.
+        if self._temperature is not None:
+            body["temperature"] = self._temperature
+        if self._seed is not None:
+            body["seed"] = self._seed
         try:
-            response = self._client().post(
-                "/chat/completions",
-                json={
-                    "model": self._model,
-                    "max_tokens": self._max_tokens,
-                    "messages": [
-                        {"role": "system", "content": system_with_schema},
-                        {"role": "user", "content": user},
-                    ],
-                },
-            )
+            response = self._client().post("/chat/completions", json=body)
             response.raise_for_status()
             content = response.json()["choices"][0]["message"]["content"]
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
@@ -204,6 +211,8 @@ def get_llm_client(settings: Settings | None = None) -> LLMClient:
             model=settings.local_llm_model,
             api_key=settings.local_llm_api_key,
             max_tokens=settings.llm_max_tokens,
+            temperature=settings.local_llm_temperature,
+            seed=settings.local_llm_seed,
         )
     raise ValueError(f"unknown llm_provider: {settings.llm_provider!r}")
 
