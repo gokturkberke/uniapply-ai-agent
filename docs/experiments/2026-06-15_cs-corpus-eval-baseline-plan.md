@@ -45,7 +45,10 @@ changes. The generated `report.json` is gitignored; the metric numbers are summa
   -> `docs/experiments/runs/L/report.json` (gitignored) + printed summary. Metrics as above; `retrieval_recall`
   is model-independent; faithfulness uses the (here self-) LLM judge; the loop is serial.
 - **Test / verification:** findings recorded; no behavior change.
-- **DONE / DROPPED:**
+- **DONE (commit `ab6f966`):** Confirmed `scripts.evaluate --run-label L` -> `evaluate_gold_set` with one
+  client wired to both answer + judge -> gitignored `runs/L/report.json` + printed summary; `retrieval_recall`
+  is model-independent, `citation_grounding_rate` should be 1.0 by construction, faithfulness is the (self-)
+  LLM judge, loop is serial.
 
 ## 2) Run the deterministic local eval
 - **Goal:** Produce the quantitative metric table over the 20-question gold set, reproducibly.
@@ -60,7 +63,9 @@ changes. The generated `report.json` is gitignored; the metric numbers are summa
   gitignored runs dir.
 - **Expected outcome:** `retrieval_recall >= 0.90`, `citation_grounding_rate == 1.0`; `refusal_accuracy`
   high but possibly < 1.0; `faithfulness_rate` reported (weak signal).
-- **DONE / DROPPED:**
+- **DONE (recorded):** Ran the deterministic local eval over all 20 questions (Ollama up, qwen3:1.7b,
+  serial, ~few min); `report.json` written under the gitignored runs dir
+  (`cs-corpus-expansion-local-qwen3-1.7b`). Metric table below.
 
 ## 3) Interpret (per-metric, per-question; no fabrication)
 - **Goal:** Turn the numbers into specific, grounded findings - which questions drag which metric.
@@ -77,7 +82,19 @@ changes. The generated `report.json` is gitignored; the metric numbers are summa
   - `faithfulness_rate` -> reported only; do not treat the self-judged number as a quality verdict.
 - **Test / verification:** every below-target metric has a named cause and a fault-layer label.
 - **Expected outcome:** a short, concrete findings list (especially the false-refusal set).
-- **DONE / DROPPED:**
+- **DONE (recorded):** `refusal_accuracy=0.550` decomposes into **0 false answers** (all 7
+  `should_refuse` questions refused correctly - the safety property holds) and **9 false refusals**
+  (in-scope questions the small model refused): `konstanz-factual-deadline`, `konstanz-factual-english`,
+  `paderborn-factual-deadline`, `paderborn-factual-english`, `paderborn-reformulation-deadline-typo`,
+  `tum-multihop-vpd-procedure`, `stuttgart-factual-duration-language`, `saarland-factual-duration`,
+  `saarland-factual-english-level`. Fault layer = **generation (small-model grounding-recall)**, not
+  retrieval: `retrieval_recall=0.923` and `citation_grounding_rate=1.000` show retrieval returns the right
+  in-scope sources and no citation is hallucinated. The model only answered **4/13** in-scope questions
+  (eligibility-points, paderborn route, paderborn multihop-timing, tum VPD-required), all cited correctly.
+  `faithfulness_rate=0.000` is degenerate: only 4 answered and all judged unsupported by the self-judge
+  (consistent with the small judge parse-failing to the conservative `supported=False` fallback) - not a
+  usable quality signal. Some false refusals may also be **over-specified gold** (e.g. a deadline framed
+  for "international applicants" the page states generically) -> candidate gold adjustments, not corpus changes.
 
 ## 4) Decision + record
 - **Goal:** Record the baseline and the next lever without changing code/corpus in this slice.
@@ -90,18 +107,30 @@ changes. The generated `report.json` is gitignored; the metric numbers are summa
   - The model default is unchanged; the corpus and gold are unchanged in this slice.
 - **Files:** this plan (DONE markers + metric table). Report stays gitignored.
 - **Test / verification:** metric table + decision captured in the marker.
-- **DONE / DROPPED:**
+- **DONE (recorded):** **No false answers**, so the STOP condition does not fire - the expanded corpus is
+  recorded as the quantitative baseline. Headline: the corpus + pipeline are correct and **safe** (0
+  false answers, `citation_grounding_rate=1.0`, `retrieval_recall=0.923`); the **small local model is the
+  bottleneck** - it over-refuses in-scope facts (`refusal_accuracy=0.550`, only 4/13 in-scope answered) and
+  cannot self-judge faithfulness. Confirms the determinism-slice conclusion: keep `qwen3:1.7b` as a
+  laptop-safe demo, do not rely on it for a quality baseline. Default model / corpus / gold unchanged.
+  **Follow-ups (separate plans):** (a) re-run the answer model as `qwen3:4b` (heavier) or a keyed
+  Anthropic model to quantify how much the false-refusal gap closes; (b) wire a separate stronger judge in
+  `scripts.evaluate` (small CLI/env change) so `faithfulness_rate` becomes meaningful; (c) prune/relax the
+  over-specified gold questions (e.g. "international applicants" deadline framing); (d) consider
+  `retrieval_min_score` only if a later run shows a retrieval (not generation) drag - it is not the issue here.
 
 ## Metric table (filled at execution; numbers only, no admission facts)
 | metric | value | target | notes |
 |---|---|---|---|
-| total | | 20 | |
-| retrieval_recall | | 0.90 | model-independent |
-| citation_recall | | - | expectation-sensitive |
-| citation_grounding_rate | | 1.0 | expect 1.0 by construction |
-| refusal_accuracy | | 1.0 | false-refusal drag expected |
-| faithfulness_rate | | 0.95 | weak: self-judged by qwen3:1.7b |
-| by_category | | - | |
+| total | 20 | 20 | |
+| retrieval_recall | **0.923** | 0.90 | **met** - model-independent; retrieval is scope-correct |
+| citation_recall | 0.875 | - | over the 4 answered in-scope questions; correct sources |
+| citation_grounding_rate | **1.000** | 1.0 | **met** - no hallucinated citations (by construction) |
+| refusal_accuracy | 0.550 | 1.0 | 9 false refusals, **0 false answers** (safety holds) |
+| faithfulness_rate | 0.000 | 0.95 | degenerate self-judge (0/4 answered judged supported) |
+| by_category | factual 13, out_of_scope 4, multi_hop 2, reformulation 1 | - | |
+
+Run label: `cs-corpus-expansion-local-qwen3-1.7b` (deterministic: temp0/seed42; `report.json` gitignored).
 
 ## Non-goals
 - No `app/` code change (run + interpret only); no separate/stronger judge wiring (needs a key or a
