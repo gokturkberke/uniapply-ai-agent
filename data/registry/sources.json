@@ -13,32 +13,6 @@
     "local_path": "konstanz-msc-cis.html"
   },
   {
-    "source_id": "uni-assist-vpd-konstanz-cis",
-    "title": "uni-assist - Plan your application (VPD guidance)",
-    "university_slug": "university-of-konstanz",
-    "programme_slug": "msc-computer-and-information-science",
-    "source_type": "vpd_info",
-    "source_authority": "secondary",
-    "lang": "en",
-    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/",
-    "country_scope": ["all"],
-    "last_updated": null,
-    "local_path": "uni-assist-vpd.html"
-  },
-  {
-    "source_id": "uni-assist-processing-time-konstanz-cis",
-    "title": "uni-assist - Deadlines and processing time",
-    "university_slug": "university-of-konstanz",
-    "programme_slug": "msc-computer-and-information-science",
-    "source_type": "deadline_schedule",
-    "source_authority": "secondary",
-    "lang": "en",
-    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/deadlines-processing-time/",
-    "country_scope": ["all"],
-    "last_updated": null,
-    "local_path": "uni-assist-deadlines-processing-time.html"
-  },
-  {
     "source_id": "paderborn-cs-official-programme-page",
     "title": "Paderborn University - M.Sc. Computer Science (programme page)",
     "university_slug": "paderborn-university",
@@ -76,5 +50,70 @@
     "country_scope": ["all"],
     "last_updated": null,
     "local_path": "uni-assist-deadlines-processing-time.html"
+  },
+  {
+    "source_id": "tum-informatics-official-programme-page",
+    "title": "Technical University of Munich - M.Sc. Informatics (programme page)",
+    "university_slug": "technical-university-of-munich",
+    "programme_slug": "msc-informatics",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://www.cit.tum.de/en/cit/studies/degree-programs/master-informatics/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "tum-msc-informatics.html"
+  },
+  {
+    "source_id": "uni-assist-vpd-tum-informatics",
+    "title": "uni-assist - Plan your application (VPD guidance)",
+    "university_slug": "technical-university-of-munich",
+    "programme_slug": "msc-informatics",
+    "source_type": "vpd_info",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-vpd.html"
+  },
+  {
+    "source_id": "uni-assist-processing-time-tum-informatics",
+    "title": "uni-assist - Deadlines and processing time",
+    "university_slug": "technical-university-of-munich",
+    "programme_slug": "msc-informatics",
+    "source_type": "deadline_schedule",
+    "source_authority": "secondary",
+    "lang": "en",
+    "url": "https://www.uni-assist.de/en/how-to-apply/plan-your-application/deadlines-processing-time/",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "uni-assist-deadlines-processing-time.html"
+  },
+  {
+    "source_id": "stuttgart-cs-official-programme-page",
+    "title": "University of Stuttgart - M.Sc. Computer Science (programme page)",
+    "university_slug": "university-of-stuttgart",
+    "programme_slug": "msc-computer-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "de",
+    "url": "https://www.uni-stuttgart.de/studium/studienangebot/Informatik-M.Sc./",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "stuttgart-msc-cs.html"
+  },
+  {
+    "source_id": "saarland-cs-official-programme-page",
+    "title": "Saarland University - M.Sc. Computer Science (programme page)",
+    "university_slug": "saarland-university",
+    "programme_slug": "msc-computer-science",
+    "source_type": "official_page",
+    "source_authority": "primary",
+    "lang": "en",
+    "url": "https://www.uni-saarland.de/en/study/programmes/master/informatics.html",
+    "country_scope": ["all"],
+    "last_updated": null,
+    "local_path": "saarland-msc-cs.html"
   }
 ]

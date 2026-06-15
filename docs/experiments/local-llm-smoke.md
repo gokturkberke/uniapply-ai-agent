@@ -36,8 +36,10 @@ This took the uni-assist probe from 4/5 to 5/5 across N=5 serial runs (see
 
 ## 3. Run the probes (serial; one at a time)
 Run these one after another. Do **not** fire them in parallel: a parallel local request has produced an
-Ollama-side HTTP 500 while serial requests work. All `/ask` probes scope to
-`university-of-konstanz` / `msc-computer-and-information-science`. `-w` prints rough latency (the first
+Ollama-side HTTP 500 while serial requests work. Probes 1, 2 and 4 scope to
+`university-of-konstanz` / `msc-computer-and-information-science`; probe 3 (uni-assist timing) scopes to
+`paderborn-university` / `msc-computer-science`, because Konstanz applies directly and carries no
+uni-assist source (see `2026-06-15_cs-corpus-expansion-plan.md`). `-w` prints rough latency (the first
 `/ask` is cold and includes model load; later calls are warm).
 
 ### Probe 1 - health
@@ -57,7 +59,7 @@ curl -s -w "\n time_total=%{time_total}s\n" localhost:8000/ask \
 ```bash
 curl -s -w "\n time_total=%{time_total}s\n" localhost:8000/ask \
   -H 'Content-Type: application/json' \
-  -d '{"question": "How early does uni-assist recommend applying before the deadline?", "university_slug": "university-of-konstanz", "programme_slug": "msc-computer-and-information-science"}'
+  -d '{"question": "How early does uni-assist recommend applying before the deadline?", "university_slug": "paderborn-university", "programme_slug": "msc-computer-science"}'
 ```
 
 ### Probe 4 - unsupported (refusal)
@@ -69,8 +71,8 @@ curl -s -w "\n time_total=%{time_total}s\n" localhost:8000/ask \
 
 ## What to check (assertion contract: shape only, never the answer text)
 - **Probes 2-3 (grounded):** HTTP 200, `insufficient_context == false`, `len(citations) >= 1`, and the
-  cited `source_id` is in the Konstanz scope (probe 2 likely `konstanz-cis-official-programme-page`;
-  probe 3 likely `uni-assist-processing-time-konstanz-cis`). The `answer` text may be printed for human
+  cited `source_id` is in the probe's scope (probe 2 likely `konstanz-cis-official-programme-page`;
+  probe 3 likely `uni-assist-processing-time-paderborn-cs`). The `answer` text may be printed for human
   inspection but is **not** asserted as a fact.
 - **Probe 4 (refusal):** HTTP 200, `answer == "Information not found in the official documents."` (the
   only verbatim text assertion), `insufficient_context == true`, `citations == []`.
