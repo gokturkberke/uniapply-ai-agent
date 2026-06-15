@@ -41,7 +41,10 @@ untouched, and the model default is not changed.
   - `tests/test_local_llm.py`: `_local_client` helper builds the client over `httpx.MockTransport`; its
     handler currently ignores the request - a capturing handler is needed to assert the request body.
 - **Test / verification:** findings recorded; no behavior change.
-- **DONE / DROPPED:**
+- **DONE (commit `ed74999`):** Re-confirmed the insertion points - `local_llm_*` block in `config.py`,
+  the `__init__`/`generate` body and `get_llm_client` branch in `generation.py`, and the
+  `httpx.MockTransport` test helper. Also empirically confirmed an empty `LOCAL_LLM_TEMPERATURE=` raises a
+  `ValidationError` for `float | None` (and `int | None` for seed), so `.env.example` uses commented examples.
 
 ## 2) Config + `.env.example` (typed settings; opt-in)
 - **Goal:** Expose the two settings without changing default behavior.
@@ -63,7 +66,10 @@ untouched, and the model default is not changed.
     empty-string parse behavior; if it does coerce to `None`, the literal form is harmless either way.)
 - **Test / verification:** `pytest` green; `Settings()` defaults `local_llm_temperature is None` and
   `local_llm_seed is None`.
-- **DONE / DROPPED:**
+- **DONE (commit `c32067d`):** Added `local_llm_temperature: float | None = None` and
+  `local_llm_seed: int | None = None` to `Settings`; documented commented-out `LOCAL_LLM_TEMPERATURE=0` /
+  `LOCAL_LLM_SEED=42` examples in `.env.example` (with the empty-value-fails-parsing note). Defaults are
+  `None` (unset).
 
 ## 3) Provider wiring (`app/rag/generation.py`)
 - **Goal:** Pass the settings into the request payload, opt-in, top-level, with the `is not None` guard.
@@ -78,7 +84,9 @@ untouched, and the model default is not changed.
     `seed=settings.local_llm_seed`.
   - `MockLLMClient` and `AnthropicLLMClient` are **not modified**.
 - **Test / verification:** covered by Item 4; existing suite stays green.
-- **DONE / DROPPED:**
+- **DONE (commit `c32067d`):** `LocalOpenAICompatibleLLMClient` now accepts `temperature`/`seed` and adds
+  them as top-level body keys only when `is not None` (so `temperature=0.0` is kept); `get_llm_client`
+  passes `settings.local_llm_temperature`/`local_llm_seed`. Mock and Anthropic clients untouched.
 
 ## 4) Tests (`tests/test_local_llm.py`, extend; offline `httpx.MockTransport`)
 - **Goal:** Prove the payload includes/omits the fields correctly, with no running server.
@@ -89,7 +97,9 @@ untouched, and the model default is not changed.
     c) `temperature=0.0` set -> request JSON contains `"temperature": 0.0` (guards the truthiness bug).
   - Keep all existing local/mock/anthropic tests passing unchanged (Mock + Anthropic behavior preserved).
 - **Test / verification:** `pytest` green (existing 111 + the new payload tests).
-- **DONE / DROPPED:**
+- **DONE (commit `c32067d`):** Added a capturing-`MockTransport` helper and tests for set (`0.5`/`42`),
+  unset (neither key present), and `temperature=0.0` (present), plus a `get_llm_client` settings
+  pass-through test. `pytest` -> **115 passed** (111 prior + 4 new), fully offline.
 
 ## 5) Phase B2 - deterministic N=5 re-run (after code + pytest green)
 - **Goal:** Re-measure `qwen3:1.7b` stability with pinned sampling; compare to Phase A.
@@ -104,7 +114,13 @@ untouched, and the model default is not changed.
     refusal correctness, any Ollama 500/timeout, fan/heat notes.
 - **Comparison target (Phase A):** eligibility **5/5**, uni-assist timing **4/5**, Harvard refusal **5/5**.
 - **Test / verification:** matrix filled; A-vs-B consistency delta stated.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Ran on a dedicated `:8021` instance (no `--reload`) with
+  `LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42`; model verified `qwen3:1.7b` via `ollama ps`. N=5 serial per
+  probe, all HTTP 200, no Ollama 500/timeout. Result: **all three probes 5/5** - eligibility 5/5
+  (`konstanz-cis-official-programme-page`), **uni-assist timing 5/5** (`uni-assist-processing-time-konstanz-cis`),
+  Harvard refusal 5/5 (exact). **Delta vs Phase A: the uni-assist probe went 4/5 -> 5/5**; the other two
+  held at 5/5. Latency ~4.2-9.1 s (cold first run ~9 s). Hypothesis confirmed: pinned sampling stabilized
+  the flaky probe.
 
 ## 6) Decision + record
 - **Goal:** Record the deterministic-smoke decision without changing the model default.
@@ -118,14 +134,17 @@ untouched, and the model default is not changed.
 - **Files:** this plan (DONE markers + matrix); `docs/experiments/local-llm-smoke.md` + `.env.example`
   note **only if** the deterministic smoke is recommended.
 - **Test / verification:** decision captured; default unchanged.
-- **DONE / DROPPED:**
+- **DONE (recorded):** B2 was 5/5 on all three probes, so the first branch applies: the **deterministic
+  local smoke (`LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42`) is recommended** and documented in
+  `docs/experiments/local-llm-smoke.md` (the `.env.example` commented examples already carry it). The
+  default model is unchanged (`qwen3:1.7b`); the sampling settings remain unset by default.
 
 ## B2 matrix (filled during execution; shape-level evidence only)
 | run config | probe | grounded/refused (of 5) | citation source_id | refusal exact | latency range (s) | 500/timeout | notes |
 |---|---|---|---|---|---|---|---|
-| temp0/seed42 | eligibility/points | | | - | | | vs Phase A 5/5 |
-| temp0/seed42 | uni-assist timing | | | - | | | vs Phase A 4/5 (key probe) |
-| temp0/seed42 | Harvard MBA refusal | | - | | | | vs Phase A 5/5 |
+| temp0/seed42 | eligibility/points | grounded 5/5 | konstanz-cis-official-programme-page | - | ~4.8-9.1 | none | held at 5/5 vs Phase A |
+| temp0/seed42 | uni-assist timing | grounded 5/5 | uni-assist-processing-time-konstanz-cis | - | ~4.2-5.0 | none | **4/5 -> 5/5** (key probe stabilized) |
+| temp0/seed42 | Harvard MBA refusal | refused 5/5 | - | yes 5/5 | ~4.2-6.3 | none | held at 5/5 vs Phase A |
 
 ## Non-goals
 - Do NOT change the default model (`qwen3:1.7b` stays the default); the two settings stay **unset by

@@ -25,6 +25,15 @@ LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 uvicorn 
 ```
 `LLM_MAX_TOKENS=768` keeps generation cheap; raise to `1024` if a small model truncates its JSON.
 
+**Recommended: deterministic sampling.** Under default (unpinned) sampling `qwen3:1.7b` is mildly flaky -
+it intermittently over-refuses a groundable question. Pinning sampling makes grounding stable; add both:
+```bash
+LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 \
+  LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42 uvicorn app.main:app
+```
+This took the uni-assist probe from 4/5 to 5/5 across N=5 serial runs (see
+`2026-06-14_local-llm-deterministic-sampling-plan.md`).
+
 ## 3. Run the probes (serial; one at a time)
 Run these one after another. Do **not** fire them in parallel: a parallel local request has produced an
 Ollama-side HTTP 500 while serial requests work. All `/ask` probes scope to
