@@ -82,10 +82,11 @@ The generated `report.json` is gitignored; numbers are summarized in the DONE ma
   safety/latency cost?"
 - **DONE (recorded):** At 768: **0/9** baseline false-refusals recovered, 9/9 still refused, 0/13 in-scope
   answered. **Safety gate held: 0 false answers** (all 7 `should_refuse` refused). But the comparison is
-  **invalid at 768** (qwen3:4b truncated to empty content). Key cross-implication: the qwen3:1.7b
-  **baseline** ran at the same 768 budget, so some of its 9 false-refusals are likely the **same
-  truncation artifact**, not model judgment - the recorded baseline `refusal_accuracy=0.55` may understate
-  the pipeline. A fair comparison requires re-running **both** models at a higher budget.
+  **invalid at 768** (qwen3:4b truncated to empty content). Cross-implication **tested with a control run**
+  (qwen3:1.7b @4096, addendum below): it is **identical to @768 per-question** -> the qwen3:1.7b baseline
+  is **budget-robust** and its 9 false-refusals are **genuine** small-model over-refusal, **NOT** a
+  truncation artifact (this corrects my initial hypothesis that the baseline might also be truncated).
+  Only qwen3:4b truncates at 768; its fair comparison still needs the heavy 4096 run.
 
 ## 4) Decision + record
 - **Decision rule:**
@@ -124,6 +125,20 @@ safe-refusal fallback), NOT a quality result - see Items 2-4. Kept for the recor
 Proof: same prompt -> `max_tokens=768` gives `finish_reason=length`, content_len=0; `max_tokens=4096`
 gives `finish_reason=stop`, valid grounded JSON. qwen3:4b needs a larger budget; a fair comparison must
 re-run both models at >=2048 (4096 verified).
+
+### Addendum - qwen3:1.7b control at LLM_MAX_TOKENS=4096 (run-label `...-mt4096`)
+| metric | qwen3:1.7b @768 | qwen3:1.7b @4096 | delta |
+|---|---|---|---|
+| retrieval_recall | 0.923 | 0.923 | 0 |
+| citation_recall | 0.875 | 0.875 | 0 |
+| citation_grounding_rate | 1.000 | 1.000 | 0 |
+| refusal_accuracy | 0.550 | 0.550 | 0 |
+| in-scope answered (of 13) | 4 | 4 | 0 |
+
+**Identical, per-question (0 differences).** qwen3:1.7b does not truncate at 768 (its reasoning fits,
+leaving room for the JSON), so the baseline is a **genuine** result and stands as recorded. The token
+budget only confounds qwen3:4b. Net: the qwen3:1.7b baseline is validated; the qwen3:4b quality
+comparison remains open pending a 4096 run (heavy).
 
 ## Non-goals
 - No `app/` code change (run + compare only); no separate/stronger-judge wiring (still a follow-up);
