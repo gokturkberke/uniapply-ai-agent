@@ -107,6 +107,13 @@ The generated `report.json` is gitignored; numbers are summarized in the DONE ma
   default model / corpus / gold are unchanged. New general finding: **`LLM_MAX_TOKENS=768` is too low for
   qwen3-family models that emit reasoning tokens** (content truncates to empty -> safe-refusal fallback);
   this affects any eval/smoke at that budget. Re-run is gated on the heavy qwen3:4b cost (user decision).
+- **RESOLVED (recorded):** the user approved the heavy run; qwen3:4b @4096 completed (fair comparison in
+  the addendum). Decision-rule branch hit: qwen3:4b **raises `refusal_accuracy` (0.55->0.60) and keeps 0
+  false answers**, but the gain is **marginal** (+1 in-scope answer, 2/9 false-refusals recovered) at ~10x
+  latency/heat. Verdict: qwen3:4b is **not worth adopting** for that gain; the bottleneck is genuine
+  small-model grounding conservatism, and the real quality lever is a **keyed Anthropic** answer+judge run
+  (separate slice). `faithfulness_rate` 0->1.0 confirms the baseline's 0.000 was a degenerate self-judge.
+  Default model / corpus / gold unchanged.
 
 ## Comparison table (filled at execution; numbers only, no admission facts)
 qwen3:4b column is at `LLM_MAX_TOKENS=768` and is a **truncation artifact** (empty content ->
@@ -137,8 +144,31 @@ re-run both models at >=2048 (4096 verified).
 
 **Identical, per-question (0 differences).** qwen3:1.7b does not truncate at 768 (its reasoning fits,
 leaving room for the JSON), so the baseline is a **genuine** result and stands as recorded. The token
-budget only confounds qwen3:4b. Net: the qwen3:1.7b baseline is validated; the qwen3:4b quality
-comparison remains open pending a 4096 run (heavy).
+budget only confounds qwen3:4b. Net: the qwen3:1.7b baseline is validated.
+
+### Fair comparison - qwen3:4b @4096 (the valid run, run-label `...-qwen3-4b-mt4096`)
+| metric | qwen3:1.7b (budget-robust) | qwen3:4b @4096 | target | note |
+|---|---|---|---|---|
+| retrieval_recall | 0.923 | 0.923 | 0.90 | invariant |
+| citation_recall | 0.875 | 0.900 | - | marginally better |
+| citation_grounding_rate | 1.000 | 1.000 | 1.0 | met |
+| refusal_accuracy | 0.550 | 0.600 | 1.0 | +0.05 only |
+| faithfulness_rate | 0.000 (degenerate) | **1.000** | 0.95 | now meaningful: all 5 answers judged faithful |
+| in-scope answered (of 13) | 4 | 5 | - | +1 |
+| false answers (of 7) | 0 | 0 | 0 | **safety held both** |
+
+Per-question: qwen3:4b recovered **2/9** baseline false-refusals (konstanz deadline + english), still
+refused 7/9 (incl. the analogous **paderborn** deadline/english - inconsistent across near-identical
+questions), and produced **0 false answers**.
+
+**Verdict:** at a fair budget qwen3:4b is **modestly** better (refusal_accuracy 0.55->0.60, in-scope
+4->5, citation_recall +0.025) and its `faithfulness_rate` becomes a real **1.0** - which also confirms the
+baseline's `faithfulness=0.000` was a **degenerate self-judge**, not unfaithful answers. But qwen3:4b
+**still over-refuses 8/13 in-scope** at ~10x the latency/heat, and safety is already perfect for both
+(0 false answers, grounding 1.0). So the bottleneck is **genuine grounding conservatism in small local
+models**, not retrieval (0.923) or token budget (qwen3:1.7b budget-robust). A real quality lift needs a
+**genuinely stronger model (keyed Anthropic)**; qwen3:4b is not worth adopting for the marginal gain.
+**Default unchanged: `qwen3:1.7b` laptop-safe demo.**
 
 ## Non-goals
 - No `app/` code change (run + compare only); no separate/stronger-judge wiring (still a follow-up);
