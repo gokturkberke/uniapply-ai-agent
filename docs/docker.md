@@ -37,8 +37,8 @@ The first `docker-index` downloads the embedding model into the `fastembed_cache
 
 ## Using a local LLM (host Ollama)
 In `.env` set `LLM_PROVIDER=local_openai` and `LOCAL_LLM_MODEL=qwen3:1.7b` (compose supplies the
-host-reachable base URL). Then `/ask` answers via your host Ollama. With `LLM_PROVIDER=mock` the API runs
-fully offline; with `anthropic` set `ANTHROPIC_API_KEY` in `.env`.
+host-reachable base URL). Then `/ask` answers via your host Ollama. With `LLM_PROVIDER=mock` (the default)
+the API runs fully offline.
 
 ## Tests
 ```bash

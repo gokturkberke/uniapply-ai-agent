@@ -53,14 +53,13 @@ docs/experiments/        # project memory: every plan + its outcome
 
 ## LLM providers
 
-Selected by `LLM_PROVIDER` (see `.env.example`):
+Selected by `LLM_PROVIDER` (see `.env.example`). The project is **local-first — no paid API keys**:
 
-- `mock` — deterministic, no network; used by the test suite and wiring smokes.
-- `anthropic` — Anthropic Claude via the official SDK (needs `ANTHROPIC_API_KEY`).
+- `mock` — deterministic, no network; the default, used by the test suite and wiring smokes.
 - `local_openai` — any OpenAI-compatible local server (Ollama / LM Studio); free, no key.
 
 Structured output is validated against Pydantic models; if a local model returns unparseable output the
-client falls back to a grounded refusal rather than guessing. Mock and Anthropic paths are unaffected.
+client falls back to a grounded refusal rather than guessing (the mock path is unaffected).
 
 ## Setup
 

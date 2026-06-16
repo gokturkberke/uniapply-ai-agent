@@ -1,6 +1,7 @@
 """Offline evaluation entrypoint.
 
-Run from the repository root (needs ANTHROPIC_API_KEY, a built index, and a curated
+Run from the repository root (needs a configured LLM provider - e.g.
+LLM_PROVIDER=local_openai with a running Ollama - a built index, and a curated
 gold set at EVAL_GOLD_PATH for real numbers):
 
     python -m scripts.evaluate --run-label baseline
