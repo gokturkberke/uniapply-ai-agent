@@ -1,0 +1,35 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    # .env must exist (cp .env.example .env). The `environment:` keys below
+    # OVERRIDE env_file for Docker networking (host Ollama + the qdrant service).
+    env_file:
+      - .env
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      LOCAL_LLM_BASE_URL: http://host.docker.internal:11434/v1
+      FASTEMBED_CACHE_PATH: /cache/fastembed
+    extra_hosts:
+      # Lets the container reach a host-side Ollama on Linux (no-op on Docker Desktop).
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - qdrant
+    volumes:
+      # Local corpus is inspectable/reused; NOTE: in server mode the active index
+      # lives in the qdrant volume below, not in ./data/index.
+      - ./data:/app/data
+      - fastembed_cache:/cache/fastembed
+
+  qdrant:
+    # Pin a specific tag for reproducibility if a client/server version warning appears.
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+volumes:
+  qdrant_storage:
+  fastembed_cache:

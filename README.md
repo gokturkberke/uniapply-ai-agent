@@ -99,6 +99,21 @@ LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 \
 
 A copy-pasteable smoke runbook lives at [`docs/experiments/local-llm-smoke.md`](docs/experiments/local-llm-smoke.md).
 
+### Run with Docker (optional)
+
+Docker is **additive** — it does not replace the local flow above. It runs the API plus a **Qdrant
+server** container (Ollama stays on your host):
+
+```bash
+cp .env.example .env
+docker compose up --build      # or: make docker-up
+curl localhost:8000/health
+```
+
+Build the index inside Docker with `make docker-ingest && make docker-chunk && make docker-index`, and run
+the offline tests with `make docker-test`. Note the Docker (server) index is separate from your local
+embedded `data/index`. Full guide: [`docs/docker.md`](docs/docker.md).
+
 ## Corpus & pipeline
 
 The corpus is driven by a committed manifest (`data/registry/sources.json`) of official sources; the
