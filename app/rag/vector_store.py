@@ -33,7 +33,11 @@ class VectorStore:
         settings = get_settings()
         if location is not None:
             client = QdrantClient(location=location)
+        elif settings.qdrant_url:
+            # Server mode (e.g. the Docker qdrant service); opt-in via QDRANT_URL.
+            client = QdrantClient(url=settings.qdrant_url)
         else:
+            # Default: embedded on-disk mode (local dev).
             Path(settings.qdrant_path).mkdir(parents=True, exist_ok=True)
             client = QdrantClient(path=settings.qdrant_path)
         return cls(client, settings.qdrant_collection)
