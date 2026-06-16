@@ -20,6 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # (raw/normalized/chunks/index/eval) are provided at runtime via the bind-mount.
 COPY app/ ./app/
 COPY scripts/ ./scripts/
+COPY tests/ ./tests/
 COPY data/registry/ ./data/registry/
 
 # Run as a non-root user; pre-create the cache dir so the named volume inherits its ownership.

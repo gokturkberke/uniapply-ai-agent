@@ -3,8 +3,8 @@
 The serving lane synthesizes an answer ONLY from retrieved context. When the
 Retrieval Gate reports insufficient context, generation returns the exact refusal
 string without calling the LLM. A deterministic ``MockLLMClient`` keeps tests fully
-offline; the real ``AnthropicLLMClient`` is lazily constructed and uses the SDK's
-native structured outputs (``messages.parse``, verified against anthropic>=0.109).
+offline; ``LocalOpenAICompatibleLLMClient`` calls a local OpenAI-compatible server
+(Ollama / LM Studio) and validates the JSON reply against the schema.
 """
 
 import json
@@ -57,43 +57,6 @@ class MockLLMClient:
 
     def generate(self, *, system: str, user: str, output_model: type[T]) -> T:
         return self._response  # type: ignore[return-value]
-
-
-class AnthropicLLMClient:
-    """Real client using the Anthropic SDK's native structured outputs.
-
-    Lazily constructs the SDK client so importing this module never requires a key
-    or network. ``api_key=None`` lets the SDK resolve ``ANTHROPIC_API_KEY`` from the
-    environment.
-    """
-
-    def __init__(self, *, model: str, api_key: str | None, max_tokens: int) -> None:
-        self._model = model
-        self._api_key = api_key
-        self._max_tokens = max_tokens
-        self._client = None  # type: ignore[var-annotated]
-
-    def _get_client(self):  # type: ignore[no-untyped-def]
-        if self._client is None:
-            import anthropic
-
-            self._client = anthropic.Anthropic(api_key=self._api_key)
-        return self._client
-
-    def generate(self, *, system: str, user: str, output_model: type[T]) -> T:
-        response = self._get_client().messages.parse(
-            model=self._model,
-            max_tokens=self._max_tokens,
-            system=system,
-            messages=[{"role": "user", "content": user}],
-            output_format=output_model,
-        )
-        for block in response.content:
-            if block.type == "text" and block.parsed_output is not None:
-                return block.parsed_output
-        raise ValueError(
-            f"Anthropic returned no parsed output (stop_reason={response.stop_reason})"
-        )
 
 
 class LLMOutputError(Exception):
@@ -199,12 +162,6 @@ def get_llm_client(settings: Settings | None = None) -> LLMClient:
                 confidence=1.0,
             )
         )
-    if settings.llm_provider == "anthropic":
-        return AnthropicLLMClient(
-            model=settings.anthropic_model,
-            api_key=settings.anthropic_api_key,
-            max_tokens=settings.llm_max_tokens,
-        )
     if settings.llm_provider == "local_openai":
         return LocalOpenAICompatibleLLMClient(
             base_url=settings.local_llm_base_url,
@@ -228,7 +185,7 @@ def safe_generate(
     """Call ``generate``, returning ``fallback`` only on ``LLMOutputError``.
 
     Only the local provider raises ``LLMOutputError`` (parse/validation failure);
-    Mock and Anthropic never do, so their behavior and unexpected errors are unaffected.
+    ``MockLLMClient`` never does, so its behavior and unexpected errors are unaffected.
     """
 
     try:

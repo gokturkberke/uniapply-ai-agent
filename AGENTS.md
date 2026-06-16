@@ -1,6 +1,6 @@
 # 1. Core Product & Domain Rules
 
-This repository is a portfolio-grade, RAG-based university application assistant for international Master's applicants. It now implements a **V1 RAG pipeline end to end** (registry-driven ingestion -> structure-aware chunking -> local Qdrant retrieval with a scope gate -> grounded-or-refuse answering with citations) behind FastAPI, exposing `/ask` plus `/checklist`, `/detect-missing`, and `/draft-email`, with Mock/Anthropic/local-OpenAI (Ollama) LLM providers and an in-repo evaluation harness. LangGraph-style agent orchestration is not yet implemented.
+This repository is a portfolio-grade, RAG-based university application assistant for international Master's applicants. It now implements a **V1 RAG pipeline end to end** (registry-driven ingestion -> structure-aware chunking -> local Qdrant retrieval with a scope gate -> grounded-or-refuse answering with citations) behind FastAPI, exposing `/ask` plus `/checklist`, `/detect-missing`, and `/draft-email`, with Mock and local-OpenAI (Ollama) LLM providers (local-first; no paid API keys) and an in-repo evaluation harness. LangGraph-style agent orchestration is not yet implemented.
 
 - Core purpose: ingest university admission documents, then (1) answer applicant questions with **source citations**, (2) generate per-program application checklists, and (3) draft formal emails to admissions offices.
 - Answers MUST be grounded in ingested documents and cite their sources. Never fabricate admission facts (deadlines, fees, required documents, language-test thresholds). If the documents do not support an answer, say so explicitly rather than guessing.
@@ -32,7 +32,7 @@ Architecture and ownership:
 - All configuration comes from environment variables, surfaced through `app/core/config.py` (`Settings` / `get_settings`). Add new config as typed fields there; never read `os.environ` directly inside handlers.
 - Never hardcode credentials, API keys, or connection strings anywhere in code or config; read them from the environment.
 - Local development uses a gitignored `.env`; `.env.example` documents every available variable. Never commit a real `.env` or any real key.
-- Future LLM/RAG credentials (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) exist only as commented placeholders in `.env.example` and are NOT wired up yet.
+- The LLM layer is local-first: `mock` (offline default) or `local_openai` (a local OpenAI-compatible server such as Ollama). No paid API keys are used or stored.
 - Environment isolation: select behavior via the `ENVIRONMENT` variable rather than hardcoding paths. If it is not explicitly set, default to `development` (a safe default; never default to a production path).
 - Document & index storage (when RAG lands): persist ingested documents and vector indexes under a clearly partitioned, configurable location. Do NOT commit ingested corpora or built indexes into the repo, and do NOT scatter them in ad-hoc local folders.
 
