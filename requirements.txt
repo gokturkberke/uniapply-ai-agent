@@ -16,8 +16,8 @@ markdownify>=1.2,<2.0
 fastembed>=0.8,<0.9  # ONNX embeddings (multilingual MiniLM)
 qdrant-client>=1.18,<2.0  # local/embedded mode (no Docker)
 
-# LLM / grounded generation
-anthropic>=0.109,<1.0  # official SDK; native structured outputs (messages.parse)
+# LLM / grounded generation: local-first - mock (offline) + an OpenAI-compatible
+# local server (Ollama / LM Studio) reached over httpx (listed under Testing). No paid SDK.
 
 # Testing
 pytest>=8.2,<9.0

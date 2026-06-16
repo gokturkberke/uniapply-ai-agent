@@ -8,7 +8,6 @@ import pytest
 from app.core.config import Settings
 from app.rag.evaluation import FaithfulnessVerdict, judge_faithfulness
 from app.rag.generation import (
-    AnthropicLLMClient,
     Citation,
     GroundedAnswer,
     LLMOutputError,
@@ -176,9 +175,9 @@ def test_get_llm_client_selects_local() -> None:
     assert isinstance(client, LocalOpenAICompatibleLLMClient)
 
 
-def test_get_llm_client_mock_and_anthropic_unaffected() -> None:
+def test_get_llm_client_mock_is_default_and_selectable() -> None:
+    assert isinstance(get_llm_client(Settings()), MockLLMClient)  # mock is the default
     assert isinstance(get_llm_client(Settings(llm_provider="mock")), MockLLMClient)
-    assert isinstance(get_llm_client(Settings(llm_provider="anthropic")), AnthropicLLMClient)
 
 
 # --- sampling payload (temperature / seed) ---------------------------------

@@ -1,8 +1,8 @@
 """Application configuration loaded from environment variables / .env file.
 
 Settings are validated by Pydantic and never contain hardcoded secrets.
-Future RAG/LLM credentials (e.g. ANTHROPIC_API_KEY) will be added here as
-optional fields once those features land.
+The LLM layer is local-first: ``mock`` (offline default) or ``local_openai``
+(an OpenAI-compatible server such as Ollama / LM Studio).
 """
 
 from functools import lru_cache
@@ -40,9 +40,7 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.3
 
-    llm_provider: Literal["anthropic", "mock", "local_openai"] = "anthropic"
-    anthropic_model: str = "claude-opus-4-8"
-    anthropic_api_key: str | None = None
+    llm_provider: Literal["mock", "local_openai"] = "mock"
     llm_max_tokens: int = 4096
 
     local_llm_base_url: str = "http://localhost:11434/v1"
