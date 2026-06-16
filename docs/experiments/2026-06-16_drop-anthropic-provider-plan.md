@@ -17,7 +17,8 @@ behavior is unchanged. No new dependency; grounding-or-refuse + scoping guarante
 - **Steps:** add `COPY tests/ ./tests/` (after the `scripts/` copy) so `pytest` finds the suite in the
   container. `tests/fixtures/` comes along.
 - **Test / verification:** (user-run) `make docker-test` -> 117 passed.
-- **DONE / DROPPED:**
+- **DONE (commit `6ff7ad7`):** Added `COPY tests/ ./tests/` to the Dockerfile (after `scripts/`). The
+  `make docker-test` run is user-side (daemon was down here).
 
 ## 2) Remove the Anthropic provider (code + dependency)
 - **Files:** `app/rag/generation.py`, `app/core/config.py`, `requirements.txt`.
@@ -31,7 +32,10 @@ behavior is unchanged. No new dependency; grounding-or-refuse + scoping guarante
     stale `ANTHROPIC_API_KEY` docstring comment.
   - `requirements.txt`: remove the `anthropic>=0.109,<1.0` line.
 - **Test / verification:** `pytest` green; `get_llm_client(Settings())` returns `MockLLMClient` by default.
-- **DONE / DROPPED:**
+- **DONE (commit `6bf8d8d`):** Removed `AnthropicLLMClient` (+ lazy `import anthropic`) and the `anthropic`
+  branch in `get_llm_client`; dropped `anthropic_model`/`anthropic_api_key`; `llm_provider` is now
+  `Literal["mock","local_openai"] = "mock"`; removed `anthropic` from `requirements.txt`; updated the
+  module + config docstrings. `pytest` -> 117 passed **with `anthropic` uninstalled** (proves no hidden import).
 
 ## 3) `.env.example`
 - **Files:** `.env.example`.
@@ -39,7 +43,10 @@ behavior is unchanged. No new dependency; grounding-or-refuse + scoping guarante
   `LLM_PROVIDER=mock`; update the provider comment block to list only `mock` and `local_openai`. Keep
   `LLM_MAX_TOKENS` and the `LOCAL_LLM_*` block.
 - **Test / verification:** `docker compose config` parses with `LLM_PROVIDER: mock`.
-- **DONE / DROPPED:**
+- **DONE (commit `6bf8d8d`):** `.env.example` drops `ANTHROPIC_*` + the Anthropic comment lines, sets
+  `LLM_PROVIDER=mock`, and lists only `mock`/`local_openai`. The gitignored local `.env` was refreshed
+  from it (the old `LLM_PROVIDER=anthropic` is now an invalid Literal). `docker compose config` ->
+  `LLM_PROVIDER: mock`.
 
 ## 4) Tests
 - **Files:** `tests/test_local_llm.py` (+ grep for any other reference).
@@ -47,7 +54,10 @@ behavior is unchanged. No new dependency; grounding-or-refuse + scoping guarante
   to assert only `mock` -> `MockLLMClient` and `local_openai` -> `LocalOpenAICompatibleLLMClient` (no
   Anthropic). Confirm no other test imports/refers to Anthropic.
 - **Test / verification:** `pytest` green and fully offline.
-- **DONE / DROPPED:**
+- **DONE (commit `6bf8d8d`):** Dropped the `AnthropicLLMClient` import and rewrote the test to
+  `test_get_llm_client_mock_is_default_and_selectable` (asserts `Settings()` default + explicit `mock` ->
+  `MockLLMClient`); `local_openai` selection stays covered by `test_get_llm_client_selects_local`. No other
+  test references Anthropic.
 
 ## 5) Docs (factual mentions only; no rule changes)
 - **Files:** `README.md`, `docs/docker.md`, `CLAUDE.md`, `AGENTS.md`, `scripts/evaluate.py` (docstring).
@@ -55,13 +65,18 @@ behavior is unchanged. No new dependency; grounding-or-refuse + scoping guarante
   remove Anthropic-key instructions; in CLAUDE.md/AGENTS.md update the status sentence + the stale
   "ANTHROPIC_API_KEY ... commented placeholder / not wired up" note to reflect Anthropic is removed. Rules untouched.
 - **Test / verification:** no remaining `anthropic` references outside historical `docs/experiments/` plans.
-- **DONE / DROPPED:**
+- **DONE (commit `3bd4cdb`):** Updated README + `docs/docker.md` provider lists, `scripts/evaluate.py`
+  docstring, and the CLAUDE.md/AGENTS.md status + credentials lines (rules untouched). Grep confirms zero
+  `anthropic` references in code/docs outside the historical `docs/experiments/` plans.
 
 ## 6) Verify
 - **Steps:** `pytest` (local) green; `docker compose config` shows `LLM_PROVIDER: mock`; (user-run, daemon)
   `make docker-up` + `make docker-test` (117) + `/ask` scoped -> mock grounded answer (no 500) and an
   out-of-scope question -> exact refusal.
-- **DONE / DROPPED:**
+- **DONE (recorded):** Verified here: `pytest` -> **117 passed** (with `anthropic` uninstalled);
+  `docker compose config` -> `LLM_PROVIDER: mock`. **User-run (daemon was down):** `make docker-up`,
+  `make docker-test` (expect 117 now that `tests/` is in the image), and `/ask` -> mock grounded answer
+  (no 500) + out-of-scope refusal.
 
 ## Non-goals
 - No change to `local_openai` or `mock` behavior, retrieval, corpus, endpoints, schemas, or the
