@@ -30,7 +30,10 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
 - **Test / verification:** `pytest` green and offline (existing `:memory:` tests untouched; they bypass
   `from_settings()` so a present `QDRANT_URL` cannot affect them).
 - **Expected outcome:** embedded mode byte-identical when `qdrant_url` unset; server mode used when set.
-- **DONE / DROPPED:**
+- **DONE (commit `4802e3c`):** Added `qdrant_url`, the `from_settings` server branch, `.env.example` doc,
+  and 2 offline branch-selection tests (spy on `QdrantClient`; no live server). `pytest` -> 117 passed,
+  offline. Side-finding fixed in `35b9c44`: `test_committed_manifest_holds_verified_cs_corpus` was failing
+  on `main` (drift from PR #17 - still asserted the old 6-record corpus); updated to the verified 9-record corpus.
 
 ## 2) `Dockerfile` (API image)
 - **Goal:** A small, reproducible image for the FastAPI app.
@@ -41,7 +44,9 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
   non-root user; `EXPOSE 8000`; `CMD uvicorn app.main:app --host 0.0.0.0 --port 8000`; optional HEALTHCHECK on `/health`.
 - **Test / verification:** `docker compose build` (user-run); image starts and serves `/health`.
 - **Expected outcome:** a working API image with no model re-download (cache volume) and no missing OpenMP.
-- **DONE / DROPPED:**
+- **DONE (commit `df5c2c8`):** Added `Dockerfile` (slim + `libgomp1`/`curl`, layer-cached deps, non-root
+  uid 1000, `FASTEMBED_CACHE_PATH=/cache/fastembed`, `/health` HEALTHCHECK, uvicorn CMD). Image build is
+  **user-run** (Docker daemon was down in this environment) - see verification note at the bottom.
 
 ## 3) `.dockerignore`
 - **Goal:** Keep secrets/data/caches out of the build context.
@@ -50,7 +55,8 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
   `.env`/`.env.*`, `docs/experiments/runs/`, and `data/raw|normalized|chunks|index|eval`. **Keep
   `data/registry/`** (committed manifest baked into the image; bind-mount overlays at runtime).
 - **Test / verification:** build context excludes the above; image does not contain `.env` or data artifacts.
-- **DONE / DROPPED:**
+- **DONE (commit `df5c2c8`):** Added `.dockerignore` excluding `.git`, venvs, caches, `.env`/`.env.*`,
+  `docs/experiments/runs/`, and `data/{raw,normalized,chunks,index,eval}`; **keeps `data/registry/`**.
 
 ## 4) `docker-compose.yml`
 - **Goal:** Orchestrate `api` + `qdrant` with persistent + cache volumes and host-Ollama reachability.
@@ -64,7 +70,11 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
   + `curl localhost:8000/health` (user-run).
 - **Expected outcome:** API talks to the qdrant server; the Docker index lives in `qdrant_storage`
   (separate from the local embedded index - rebuild once per mode).
-- **DONE / DROPPED:**
+- **DONE (commit `df5c2c8`):** Added `docker-compose.yml` (api + qdrant; `environment:` overrides
+  `QDRANT_URL`/`LOCAL_LLM_BASE_URL` over `env_file`; `extra_hosts: host.docker.internal:host-gateway`;
+  `./data` bind-mount + `fastembed_cache` + `qdrant_storage` volumes). **`docker compose config` parsed
+  cleanly and confirmed the env precedence** (QDRANT_URL -> `http://qdrant:6333`, LOCAL_LLM_BASE_URL ->
+  `host.docker.internal`). `up` is user-run.
 
 ## 5) `Makefile`
 - **Goal:** Ergonomic Docker commands.
@@ -73,7 +83,9 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
   (`docker compose run --rm api pytest`), and `docker-ingest`/`docker-chunk`/`docker-index`/`docker-evaluate`
   (`docker compose run --rm api python -m scripts.<name>`).
 - **Test / verification:** `make -n docker-test` etc. expand to the expected commands.
-- **DONE / DROPPED:**
+- **DONE (commit `df5c2c8`):** Added `Makefile` targets. `make -n docker-test docker-index` expanded
+  correctly (`docker compose run --rm --no-deps api pytest` and `... python -m scripts.index`), confirming
+  the recipe tabs/targets parse. `docker-test` uses `--no-deps` (tests need no qdrant service).
 
 ## 6) Docs: `docs/docker.md` + README quickstart
 - **Goal:** Make the Docker flow runnable + clear that it is optional.
@@ -83,7 +95,18 @@ experiments. The product guarantee is unchanged: unsupported scoped questions re
   optional `EMBEDDING_PROVIDER=fake` no-download smoke, and troubleshooting; README gets a short Docker
   quickstart stating Docker is additive, not a replacement for local dev.
 - **Test / verification:** docs are accurate vs the compose/Makefile; links resolve.
-- **DONE / DROPPED:**
+- **DONE (commit `df5c2c8`):** Added `docs/docker.md` (setup, embedded-vs-server + rebuild-per-mode, host
+  Ollama, index-in-Docker, `EMBEDDING_PROVIDER=fake` smoke, troubleshooting incl. Linux bind-mount perms)
+  and a README "Run with Docker (optional)" quickstart stating Docker is additive, not a replacement.
+
+---
+
+## Runtime verification status (Docker daemon was DOWN in this environment)
+Verified here: `pytest` -> **117 passed** (offline); `docker compose config` parses with correct env
+precedence; `make -n` targets expand. **User-run (require a running Docker daemon):** `docker compose
+build`, `docker compose up` + `curl /health`, `make docker-test`, the `docker-ingest/chunk/index` pipeline
+into the qdrant service, and the host-Ollama `/ask` smoke. A local `.env` was created (gitignored) from
+`.env.example` for compose validation and for the user's Docker runs.
 
 ## Non-goals
 - No frontend; no new RAG features/endpoints/schemas; no model experiments; no change to the default
