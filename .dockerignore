@@ -1,0 +1,36 @@
+# VCS / tooling
+.git
+.gitignore
+.dockerignore
+
+# Python environments & caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Secrets - never bake into the image
+.env
+.env.*
+!.env.example
+
+# Gitignored corpus/data (provided at runtime via the bind-mount); data/registry is kept
+data/raw/
+data/normalized/
+data/chunks/
+data/index/
+data/eval/
+
+# Evaluation run outputs
+docs/experiments/runs/
+
+# OS noise
+.DS_Store

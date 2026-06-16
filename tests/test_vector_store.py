@@ -33,6 +33,47 @@ def _store() -> VectorStore:
     return VectorStore(QdrantClient(location=":memory:"), "test_chunks")
 
 
+def test_from_settings_uses_server_url_when_qdrant_url_set(monkeypatch) -> None:
+    """When ``qdrant_url`` is set, the client is built in server mode (no live server needed)."""
+
+    from app.core.config import Settings
+
+    captured: dict = {}
+    monkeypatch.setattr(
+        "app.rag.vector_store.QdrantClient",
+        lambda **kwargs: captured.update(kwargs) or object(),
+    )
+    monkeypatch.setattr(
+        "app.rag.vector_store.get_settings",
+        lambda: Settings(qdrant_url="http://qdrant:6333"),
+    )
+
+    VectorStore.from_settings()
+
+    assert captured == {"url": "http://qdrant:6333"}
+
+
+def test_from_settings_embedded_when_qdrant_url_unset(monkeypatch, tmp_path) -> None:
+    """Default (qdrant_url unset) stays embedded on-disk mode - behavior unchanged."""
+
+    from app.core.config import Settings
+
+    captured: dict = {}
+    monkeypatch.setattr(
+        "app.rag.vector_store.QdrantClient",
+        lambda **kwargs: captured.update(kwargs) or object(),
+    )
+    monkeypatch.setattr(
+        "app.rag.vector_store.get_settings",
+        lambda: Settings(qdrant_url=None, qdrant_path=str(tmp_path / "idx")),
+    )
+
+    VectorStore.from_settings()
+
+    assert "url" not in captured
+    assert captured.get("path") == str(tmp_path / "idx")
+
+
 def test_upsert_and_count() -> None:
     store = _store()
     embedder = FakeEmbedder()

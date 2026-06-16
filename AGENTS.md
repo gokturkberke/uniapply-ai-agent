@@ -1,6 +1,6 @@
 # 1. Core Product & Domain Rules
 
-This repository is a portfolio-grade, RAG-based university application assistant for international Master's applicants. It is currently an early **greenfield scaffold** (FastAPI + `/health`); RAG, retrieval, LLM, and agent orchestration are planned but not yet implemented.
+This repository is a portfolio-grade, RAG-based university application assistant for international Master's applicants. It now implements a **V1 RAG pipeline end to end** (registry-driven ingestion -> structure-aware chunking -> local Qdrant retrieval with a scope gate -> grounded-or-refuse answering with citations) behind FastAPI, exposing `/ask` plus `/checklist`, `/detect-missing`, and `/draft-email`, with Mock/Anthropic/local-OpenAI (Ollama) LLM providers and an in-repo evaluation harness. LangGraph-style agent orchestration is not yet implemented.
 
 - Core purpose: ingest university admission documents, then (1) answer applicant questions with **source citations**, (2) generate per-program application checklists, and (3) draft formal emails to admissions offices.
 - Answers MUST be grounded in ingested documents and cite their sources. Never fabricate admission facts (deadlines, fees, required documents, language-test thresholds). If the documents do not support an answer, say so explicitly rather than guessing.

@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     embedding_batch_size: int = 32
     qdrant_path: str = "data/index/qdrant"
     qdrant_collection: str = "uniapply_chunks"
+    qdrant_url: str | None = None
 
     retrieval_top_k: int = 5
     retrieval_min_score: float = 0.3
