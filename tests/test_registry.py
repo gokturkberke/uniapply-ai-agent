@@ -93,16 +93,20 @@ def test_non_list_payload_raises(tmp_path: Path) -> None:
 
 def test_committed_manifest_holds_verified_cs_corpus() -> None:
     # The committed production manifest holds the verified Computer Science
-    # mini-corpus: six programme-scoped sources across University of Konstanz
-    # and Paderborn University.
+    # mini-corpus: nine programme-scoped sources across five programmes. uni-assist
+    # sources are attached only where the official page confirms uni-assist/VPD
+    # (Paderborn, TUM); Konstanz/Stuttgart/Saarland are official-page-only.
     sources = load_registry(COMMITTED_MANIFEST)
 
-    assert len(sources) == 6
+    assert len(sources) == 9
     assert {s.source_id for s in sources} == {
         "konstanz-cis-official-programme-page",
-        "uni-assist-vpd-konstanz-cis",
-        "uni-assist-processing-time-konstanz-cis",
         "paderborn-cs-official-programme-page",
         "uni-assist-vpd-paderborn-cs",
         "uni-assist-processing-time-paderborn-cs",
+        "tum-informatics-official-programme-page",
+        "uni-assist-vpd-tum-informatics",
+        "uni-assist-processing-time-tum-informatics",
+        "stuttgart-cs-official-programme-page",
+        "saarland-cs-official-programme-page",
     }
