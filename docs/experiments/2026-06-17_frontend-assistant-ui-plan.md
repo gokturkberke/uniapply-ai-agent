@@ -37,7 +37,11 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
 - **Test / verification:** new offline `tests/test_cors.py` asserts a request carrying an `Origin` header
   gets `access-control-allow-origin` echoed; full `pytest` stays green.
 - **Expected outcome:** browser at `:5173` can call `:8000`; no schema/path/RAG change; suite green.
-- **DONE / DROPPED:**
+- **DONE (commit `8666971`):** Added the typed `cors_allow_origins` Setting (Vite dev origins default) +
+  split helper and wired `CORSMiddleware` in `create_app()`. Offline `tests/test_cors.py` (allowed origin,
+  preflight, rejected origin, defaults) green; full suite 121 passed. E2E on a live server echoed
+  `access-control-allow-origin: http://localhost:5173`. The `CORS_ALLOW_ORIGINS` doc line was later dropped
+  from `.env.example` (commit `27c5257`); the Setting keeps a working default. Decision: shipped.
 
 ## 2) Frontend scaffold (Vite + React + TS + Tailwind v4)
 - **Goal:** A minimal, reproducible frontend project that builds and runs against a configurable backend URL.
@@ -49,7 +53,11 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
   and `frontend/dist` to `.gitignore`.
 - **Test / verification:** `npm run build` succeeds; `npm run dev` serves the app shell.
 - **Expected outcome:** clean Vite+React+TS+Tailwind baseline, no committed `node_modules`/`dist`.
-- **DONE / DROPPED:**
+- **DONE (commit `b621177`):** Scaffolded `frontend/` (Vite 6.4.3 + React 18.3.1 + TS 5.9, Tailwind 4.3 via
+  `@tailwindcss/vite`, Vitest/jsdom wiring, configurable `VITE_API_BASE_URL`). `npm run build` + typecheck
+  pass; `node_modules`/`dist` gitignored, `package-lock` committed. ESLint from the Vite template was not
+  added this slice (typecheck + Vitest cover correctness); the 6 npm-audit advisories are all dev-server-only
+  esbuild issues, so no breaking Vite 8 bump. Decision: shipped.
 
 ## 3) API layer (typed client mirroring the backend contracts)
 - **Goal:** A thin, typed integration layer so panels never assume successful LLM output.
@@ -64,7 +72,9 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
 - **Test / verification:** covered by the Vitest specs in item 5 (client error/200 behavior).
 - **Expected outcome:** every request is scoped by the selected programme's exact slugs; refusal and
   empty-content branches are representable in types.
-- **DONE / DROPPED:**
+- **DONE (commit `9dc1e19`):** Added `types.ts` (field-for-field mirror), `client.ts` (`ApiError` on non-2xx /
+  unreachable; 200 grounded refusals passed through as data), `endpoints.ts` (the five calls), the
+  5-programme config with exact registry slugs, and `useApiCall`. Typecheck green. Decision: shipped.
 
 ## 4) UI components (dashboard layout + the four tools)
 - **Goal:** A restrained, professional tool UI: programme gate, Ask, and the three artifact tabs.
@@ -78,7 +88,10 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
   result renders the `DisclaimerBar` and citation breadcrumbs (`source_id` + `heading_path`).
 - **Test / verification:** manual E2E (item 6) + component specs (item 5).
 - **Expected outcome:** mobile-responsive dashboard; no landing page/hero; refusal and error states explicit.
-- **DONE / DROPPED:**
+- **DONE (commit `356c420`):** Added AppShell (app bar + backend health dot + programme gate), tabbed
+  Ask/Checklist/Missing/Email panels, shared citations/refusal/disclaimer/answer components, and ui
+  primitives. Each panel renders loading/error/grounded/refusal states and always shows the disclaimer.
+  Build + typecheck green; restrained responsive Tailwind, no landing page. Decision: shipped.
 
 ## 5) Frontend tests + typecheck
 - **Goal:** Offline confidence in rendering logic and the client contract.
@@ -88,7 +101,10 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
   500/422, body on 200); run `tsc --noEmit` (or `vite build`) for types.
 - **Test / verification:** `npm test` and the typecheck pass.
 - **Expected outcome:** green suite with no live backend dependency.
-- **DONE / DROPPED:**
+- **DONE (commit `de38139`):** Vitest + RTL specs (12 tests, offline, 7 files): the client (`ApiError` on
+  500/422/unreachable, body on 200), the programme gate (tabs disabled until selected), and each panel incl.
+  grounded-vs-refusal Ask and profile-textarea -> string[] parsing. `npm test` 12 passed; `tsc --noEmit`
+  clean. Decision: shipped.
 
 ## 6) Docs + end-to-end verification
 - **Goal:** Make the frontend runnable from the README and prove the full stack works locally.
@@ -100,7 +116,16 @@ model experiments. The product guarantee is unchanged: unsupported scoped questi
 - **Test / verification:** manual E2E checklist passes; `git status` empty after push.
 - **Expected outcome:** a reviewer can run the UI in two commands and see grounded answers, citations, and
   refusals.
-- **DONE / DROPPED:**
+- **DONE (commit `c7542d5`):** Added the README frontend quickstart. Live-backend E2E: `/health` 200 with the
+  CORS header for the Vite origin; with the default mock provider all four RAG endpoints returned valid 200
+  schemas in the refusal state (the grounding guarantee refuses uncited mock answers by design); with
+  `local_openai` + qwen3:1.7b, `/ask` returned a grounded answer (`insufficient_context=false`, confidence
+  1.0) whose three citations were all scoped to `tum-informatics-official-programme-page` (no cross-institution
+  blending); `/ask` with a missing field returned 422; the Vite dev server served the app at `:5173`.
+  Side-finding (not caused by this milestone): a corrupted local fastembed ONNX cache made `/ask` 500 until
+  the cache was cleared and re-downloaded; and embedded Qdrant holds a single-instance lock, so a backend
+  restart is needed after a request that errors mid-retrieval. Decision: shipped on
+  `feat/frontend-assistant-ui`.
 
 ---
 
