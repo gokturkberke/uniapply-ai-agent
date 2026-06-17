@@ -49,6 +49,11 @@ data/eval/
 # Evaluation run outputs (committed plans live in docs/experiments/, not the runs)
 docs/experiments/runs/
 
+# Frontend (Node / Vite)
+node_modules/
+frontend/dist/
+frontend/.vite/
+
 # OS
 .DS_Store
 Thumbs.db

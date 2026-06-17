@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     api_version: str = "v1"
 
+    # Browser origins allowed to call the API (comma-separated; a single string
+    # avoids the pydantic-settings JSON-list-in-env footgun). Defaults to the
+    # Vite dev server. Parsed via cors_allow_origins_list.
+    cors_allow_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
     registry_path: str = "data/registry/sources.json"
     raw_dir: str = "data/raw"
     normalized_dir: str = "data/normalized"
@@ -57,6 +62,16 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @property
+    def cors_allow_origins_list(self) -> list[str]:
+        """Return the configured CORS origins as a clean list."""
+
+        return [
+            origin.strip()
+            for origin in self.cors_allow_origins.split(",")
+            if origin.strip()
+        ]
 
 
 @lru_cache

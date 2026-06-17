@@ -113,6 +113,27 @@ Build the index inside Docker with `make docker-ingest && make docker-chunk && m
 the offline tests with `make docker-test`. Note the Docker (server) index is separate from your local
 embedded `data/index`. Full guide: [`docs/docker.md`](docs/docker.md).
 
+## Frontend (local dev)
+
+A Vite + React + TypeScript dashboard (`frontend/`) for the API: pick a programme scope, then ask grounded
+questions or run the checklist / missing-document / draft-email tools, with citations, refusal states, and
+the disclaimer shown inline. Local-dev only for now (no Docker service yet).
+
+```bash
+cd frontend
+npm install
+npm run dev            # http://localhost:5173
+```
+
+Run the API in another terminal (`uvicorn app.main:app --reload`); the UI calls it at
+`http://localhost:8000` by default. Point it elsewhere with `VITE_API_BASE_URL` (see
+`frontend/.env.example`). The backend allows the Vite dev origin via CORS (`CORS_ALLOW_ORIGINS`).
+
+```bash
+npm test               # Vitest + React Testing Library (offline)
+npm run build          # type-check + production build
+```
+
 ## Corpus & pipeline
 
 The corpus is driven by a committed manifest (`data/registry/sources.json`) of official sources; the
