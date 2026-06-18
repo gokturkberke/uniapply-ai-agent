@@ -85,7 +85,9 @@ def generate_checklist(
 
     system = (
         "You are UniApply. Extract the application checklist (required documents, "
-        "deadlines, language requirements, and application steps) for the programme.\n"
+        "deadlines, language requirements, and application steps) for the programme. "
+        "List at most 8 of the most important items; keep each detail to one concise "
+        "sentence.\n"
         + _CONTRACT
     )
     user = f"Context:\n{format_context(retrieval_result)}"
@@ -108,10 +110,13 @@ def detect_missing_documents(
         return _missing_refusal()
 
     system = (
-        "You are UniApply. From the context, determine the required documents/credentials "
-        "for the programme. Compare them against the applicant's profile (items they "
-        "already have). Return which required items are still missing and which are "
-        "satisfied.\n" + _CONTRACT
+        "You are UniApply. From the context, list the concrete documents and credentials "
+        "an applicant must submit or hold for the programme (e.g. degree certificate, "
+        "academic transcript, language certificate, CV, statement of purpose, "
+        "uni-assist VPD). Do NOT list page sections, field labels, dates, or procedural "
+        "steps. Compare that list against the applicant's profile (items they already "
+        "have) and return which required items are still missing and which are satisfied. "
+        "Keep each item to a short noun phrase.\n" + _CONTRACT
     )
     profile_text = "\n".join(f"- {item}" for item in profile) or "(none provided)"
     user = (
