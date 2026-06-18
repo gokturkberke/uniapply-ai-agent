@@ -27,7 +27,9 @@ shape).
   trailing parenthetical (`re.sub(r"\s*\([^)]*\)\s*$", "", title)`); return sorted by the slug pair.
 - **Test / verification:** `tests/test_registry.py` - 5 programmes, titles stripped, sorted/distinct, None excluded.
 - **Expected outcome:** deterministic programme list derived from the committed manifest.
-- **DONE / DROPPED:**
+- **DONE (commit `59d7b44`):** Added `ProgrammeSummary` and the pure `distinct_programmes` (group by slug
+  pair, prefer the primary source title else first, strip trailing parenthetical, sorted). `tests/test_registry.py`
+  covers the committed-manifest 5 programmes + prefer-primary/strip/exclude-None. Shipped.
 
 ## 2) Endpoint `GET /programmes`
 - **Goal:** Expose the programme list read-only.
@@ -38,7 +40,10 @@ shape).
 - **Test / verification:** `tests/test_api.py` - 200 with 5 items and a known `{university_slug, programme_slug,
   title}` (Konstanz). Offline (`load_registry` reads the committed manifest).
 - **Expected outcome:** `curl /programmes` returns the 5 programmes.
-- **DONE / DROPPED:**
+- **DONE (commit `59d7b44`):** `GET /programmes` (`response_model=list[ProgrammeSummary]`) via `load_registry`
+  + `distinct_programmes`. `tests/test_api.py` asserts 200 + 5 programmes + the Konstanz title. Deviation from
+  plan: no `schemas.py` change was needed - the route reuses the domain `ProgrammeSummary` directly (same
+  pattern as `Citation`/`ChecklistItem`), so a delivery-layer wrapper would have been redundant. Shipped.
 
 ## 3) Frontend: fetch the list (remove the hardcoded array)
 - **Goal:** The selector is populated from the backend; no hardcoded programmes.
@@ -50,7 +55,11 @@ shape).
   (show `title` instead of `university - programme`).
 - **Test / verification:** see item 4.
 - **Expected outcome:** UI selector lists the backend programmes; gate + tools unchanged.
-- **DONE / DROPPED:**
+- **DONE (commit `47e8d87`):** Added the `ProgrammeInfo` type + `getProgrammes`; `App` fetches on mount and
+  passes the list (with a loading state + a "could not load programmes" error) to the selector; removed the
+  hardcoded `PROGRAMMES` (`Programme` = alias of `ProgrammeInfo`); the selector and checklist show the
+  registry-derived `title`. The 4 panel test fixtures were updated to the new `{slug pair, title}` shape.
+  Shipped.
 
 ## 4) Tests + verification + close-out
 - **Goal:** Lock the behavior and prove end to end.
@@ -62,7 +71,10 @@ shape).
   Fill DONE markers; push.
 - **Test / verification:** all gates green; E2E recorded.
 - **Expected outcome:** frontend has no hardcoded programme list; both suites green.
-- **DONE / DROPPED:**
+- **DONE (verified at `47e8d87`):** Backend `pytest` 128 passed; frontend `npm test` 14 passed + `npm run
+  build` green. Live E2E: `GET /programmes` on a running backend returned the 5 programmes sorted with clean
+  titles (parenthetical stripped); the UI selector is populated from the backend with no hardcoded list.
+  Shipped on `feat/programmes-endpoint`.
 
 ---
 
