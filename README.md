@@ -94,7 +94,7 @@ default. For stable (deterministic) local runs, pin sampling:
 ollama pull qwen3:1.7b
 make run-local      # runs the command below for you
 # equivalently:
-LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 \
+LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=1536 \
   LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42 uvicorn app.main:app
 ```
 
