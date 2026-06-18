@@ -92,11 +92,16 @@ default. For stable (deterministic) local runs, pin sampling:
 
 ```bash
 ollama pull qwen3:1.7b
+make run-local      # runs the command below for you
+# equivalently:
 LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 \
   LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42 uvicorn app.main:app
 ```
 
-A copy-pasteable smoke runbook lives at [`docs/experiments/local-llm-smoke.md`](docs/experiments/local-llm-smoke.md).
+The default `LLM_PROVIDER=mock` is an offline wiring stub that **refuses every answer by design** (it cites
+nothing, and the grounding guard rejects uncited answers); use a local model for real answers. `GET /health`
+reports the active `llm_provider`/`llm_model`, and the frontend header shows it (mock renders a "demo stub"
+warning). A copy-pasteable smoke runbook lives at [`docs/experiments/local-llm-smoke.md`](docs/experiments/local-llm-smoke.md).
 
 ### Run with Docker (optional)
 
