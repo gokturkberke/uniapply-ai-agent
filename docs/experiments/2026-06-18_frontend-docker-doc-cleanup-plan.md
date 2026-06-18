@@ -18,7 +18,9 @@ untracked root `package-lock.json`; Docker daemon is still user-run only in this
   distinguishes local Vite dev (`:5173` -> API `:8000` + CORS) from Docker full-stack (`:8080` via nginx).
 - **Test / verification:** `rg "no Docker service yet|Local-dev only for now"` returns no stale matches.
 - **Expected outcome:** README no longer contradicts PR 3.
-- **DONE / DROPPED:**
+- **DONE (commit `5f79271`):** Replaced the stale README wording with an explicit distinction between local
+  Vite development (`:5173` -> API `:8000` + CORS) and Docker full-stack (`:8080` through nginx). Stale
+  wording is gone from live README/Docker docs. Decision: shipped.
 
 ## 2) Metadata/docs consistency check
 - **Goal:** Confirm no `requirements.txt`, env example, package manifest, Docker docs, or compose text needs a
@@ -31,7 +33,12 @@ untracked root `package-lock.json`; Docker daemon is still user-run only in this
 - **Test / verification:** `docker compose config`; `npm run build`; `npm test`; `.venv/bin/python -m pytest`
   if no dependency files are touched. User-run Docker smoke remains unchanged.
 - **Expected outcome:** docs cleanup is limited to stale wording; offline gates remain green.
-- **DONE / DROPPED:**
+- **DONE (commit `5f79271`):** Consistency scan found one real metadata-doc gap: README referenced
+  `CORS_ALLOW_ORIGINS`, but `.env.example` did not document the existing typed setting. Added it with a note
+  that Docker uses nginx single-origin proxying and does not need `:8080` in CORS. No `requirements.txt`,
+  package, lockfile, compose, nginx, or Dockerfile change was needed. `docker compose config`, frontend
+  `npm run build`, frontend `npm test` (14 passed), and `.venv/bin/python -m pytest` (125 passed) were green.
+  Decision: shipped.
 
 ---
 
