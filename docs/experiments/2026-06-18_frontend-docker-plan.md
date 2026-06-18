@@ -29,7 +29,9 @@ change - `apiBaseUrl()` (`frontend/src/api/client.ts`) already returns the confi
   `dist`, `.vite`, `.env*`.
 - **Test / verification:** `npm run build` succeeds (same build the image runs); image build is user-run.
 - **Expected outcome:** static SPA served on :80 with `/api/*` proxied to the api service.
-- **DONE / DROPPED:**
+- **DONE (commit `3462a8b`):** Added `frontend/Dockerfile` (multi-stage node build -> nginx),
+  `frontend/nginx.conf` (`/api/` -> `http://api:8000/` proxy + SPA fallback), and `frontend/.dockerignore`.
+  `npm run build` green (same build the image runs); image build itself is user-run (daemon down). Shipped.
 
 ## 2) Compose frontend service
 - **Goal:** Wire the frontend into the stack.
@@ -38,7 +40,9 @@ change - `apiBaseUrl()` (`frontend/src/api/client.ts`) already returns the confi
   ["8080:80"]`, `depends_on: {api: {condition: service_healthy}}`). `api`/`qdrant` unchanged.
 - **Test / verification:** `docker compose config` parses and shows the service + build arg + healthy gate.
 - **Expected outcome:** one `docker compose up` starts qdrant + api + frontend.
-- **DONE / DROPPED:**
+- **DONE (commit `3462a8b`):** Added the `frontend` compose service (build arg `VITE_API_BASE_URL=/api`,
+  `8080:80`, `depends_on api: condition: service_healthy`). `docker compose config` parses and shows the
+  service with the arg + healthy gate. Shipped.
 
 ## 3) Docs
 - **Goal:** Document the full-stack flow.
@@ -49,7 +53,9 @@ change - `apiBaseUrl()` (`frontend/src/api/client.ts`) already returns the confi
   bakes `VITE_API_BASE_URL=/api`.
 - **Test / verification:** docs match the compose/nginx wiring.
 - **Expected outcome:** a reviewer can bring up the full stack from the README.
-- **DONE / DROPPED:**
+- **DONE (commit `500fc69`):** README Docker quickstart + `docs/docker.md` document the full-stack compose
+  (UI at :8080, single-origin `/api` proxy, no Docker CORS, `LLM_PROVIDER=local_openai` for real answers,
+  provider chip), incl. a frontend troubleshooting bullet. Shipped.
 
 ## 4) Verification + close-out
 - **Goal:** Prove it offline + document the user-run path.
@@ -60,7 +66,12 @@ change - `apiBaseUrl()` (`frontend/src/api/client.ts`) already returns the confi
   markers; push.
 - **Test / verification:** offline gates green; user-run steps documented.
 - **Expected outcome:** full-stack compose verified offline; build/up runbook recorded.
-- **DONE / DROPPED:**
+- **DONE (verified at `500fc69`):** Offline gates green - `docker compose config` valid, frontend
+  `npm run build` builds, backend `pytest` 125 passed, frontend `npm test` 14 passed (no app code changed).
+  **User-run (Docker daemon was down in this environment):** `docker compose up --build`, open
+  `http://localhost:8080` (UI loads, provider chip shows the active provider), pick a programme + ask -> a
+  grounded answer proxied through nginx with no CORS; `curl localhost:8080/api/health` mirrors
+  `localhost:8000/health`. Shipped on `feat/frontend-docker`.
 
 ---
 
