@@ -6,10 +6,13 @@ later retrieval can never blend requirements across institutions.
 """
 
 import json
+import re
 from pathlib import Path
 
 from app.core.config import get_settings
-from app.rag.metadata import RegisteredSource, SourceAuthority
+from app.rag.metadata import ProgrammeSummary, RegisteredSource, SourceAuthority
+
+_TRAILING_PARENS = re.compile(r"\s*\([^)]*\)\s*$")
 
 
 def load_registry(path: Path | None = None) -> list[RegisteredSource]:
@@ -64,3 +67,36 @@ def filter_sources(
     if source_authority is not None:
         result = [s for s in result if s.source_authority == source_authority]
     return list(result)
+
+
+def distinct_programmes(sources: list[RegisteredSource]) -> list[ProgrammeSummary]:
+    """Return the distinct (university, programme) pairs with a display title.
+
+    Sources without a ``programme_slug`` are excluded. The title is the programme's
+    ``primary`` source title (else the first source's), with a trailing parenthetical
+    stripped (e.g. ``"... (programme page)"``). Sorted by ``(university_slug,
+    programme_slug)`` for determinism.
+    """
+
+    grouped: dict[tuple[str, str], list[RegisteredSource]] = {}
+    for source in sources:
+        if source.programme_slug is None:
+            continue
+        key = (source.university_slug, source.programme_slug)
+        grouped.setdefault(key, []).append(source)
+
+    summaries: list[ProgrammeSummary] = []
+    for (university_slug, programme_slug), group in grouped.items():
+        primary = next(
+            (s for s in group if s.source_authority == SourceAuthority.primary),
+            group[0],
+        )
+        title = _TRAILING_PARENS.sub("", primary.title).strip()
+        summaries.append(
+            ProgrammeSummary(
+                university_slug=university_slug,
+                programme_slug=programme_slug,
+                title=title,
+            )
+        )
+    return sorted(summaries, key=lambda p: (p.university_slug, p.programme_slug))

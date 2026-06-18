@@ -99,6 +99,18 @@ class RegisteredSource(SourceMetadata):
         return _validate_slug(value, "source_id")
 
 
+class ProgrammeSummary(BaseModel):
+    """A distinct programme (university + programme) with a display title.
+
+    Derived from the registry for listing; the frontend uses the slug pair to
+    scope requests and the title as the human-readable label.
+    """
+
+    university_slug: str
+    programme_slug: str
+    title: str
+
+
 class ParentSection(BaseModel):
     """A header-bounded section of a source, retrieved as parent context.
 
