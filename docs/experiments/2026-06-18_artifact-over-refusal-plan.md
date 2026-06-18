@@ -63,6 +63,24 @@ budget headroom), and switching the default demo model.
 - **Expected outcome:** measurable drop in artifact refusals; offline suite green.
 - **DONE / DROPPED:**
 
+## 5) (PROPOSED - awaiting explicit approval) Disable qwen3 "thinking" for structured output
+- **Goal:** Recover the model-reliability refusals that budget + prompts alone cannot fix.
+- **Why now (from the item 1-4 smoke, qwen3:1.7b @2048):** truncation is fixed (Konstanz, TUM, Stuttgart
+  checklists ground; TUM detect-missing lists real documents). Two refusals remain and are NOT truncation:
+  Paderborn (model self-reports `insufficient_context` despite 4 grounded items) and Saarland (emits no JSON
+  object). Appending qwen3's `/no_think` flips Paderborn to OK (verified: 8 grounded items with `/no_think`
+  vs model-insufficient without). Saarland still fails (residual tiny-model limit). Disabling chain-of-thought
+  also reduces output length/heat and improves JSON reliability.
+- **Files:** `app/core/config.py` (new typed `local_llm_disable_thinking: bool = True`), `app/rag/generation.py`
+  (`LocalOpenAICompatibleLLMClient` appends `/no_think` to the system prompt when the flag is set),
+  `.env.example` (document the field), `tests/test_local_llm.py` (assert the marker is appended only when the
+  flag is on; mock/offline behavior unchanged).
+- **Scope note:** grows PR 2 beyond the approved budget+prompts scope (new typed Settings field + local-client
+  behavior), so it is gated on explicit approval per the user's instruction.
+- **Expected outcome:** with 2048 + `/no_think`, 4 of 5 checklists ground (Saarland residual) and detect-missing
+  improves; mock and offline tests unaffected (only the local client appends the marker).
+- **DONE / DROPPED:**
+
 ---
 
 ## Non-goals
