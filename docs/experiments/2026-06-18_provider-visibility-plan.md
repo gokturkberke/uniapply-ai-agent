@@ -26,7 +26,9 @@ only makes the provider visible and easy to switch. Over-refusal of the artifact
 - **Test / verification:** `tests/test_api.py` asserts the new fields; default -> `mock`/`None`; an override
   to `local_openai` echoes the model. Offline.
 - **Expected outcome:** `/health` reports the provider/model; no other contract/path/RAG change.
-- **DONE / DROPPED:**
+- **DONE (commit `37c4bfe`):** Added additive `llm_provider`/`llm_model` to `HealthResponse` and populated
+  them in `health()` (model is null for mock). Live `/health` reported `local_openai` / `qwen3:1.7b`.
+  Decision: shipped.
 
 ## 2) One-command local run
 - **Goal:** Make it trivial to run the API with the local model (avoid the mock footgun).
@@ -36,7 +38,8 @@ only makes the provider visible and easy to switch. Over-refusal of the artifact
   LOCAL_LLM_SEED=42` (mirrors the README local-LLM runbook; deterministic for a stable demo).
 - **Test / verification:** `make -n run-local` expands to the expected command.
 - **Expected outcome:** `make run-local` starts the API against host Ollama.
-- **DONE / DROPPED:**
+- **DONE (commit `37c4bfe`):** Added the `run-local` target (deterministic local_openai sampling).
+  `make -n run-local` expanded to the expected command. Decision: shipped.
 
 ## 3) Frontend provider badge + mock warning
 - **Goal:** Show the active provider/model in the header and warn when it is the mock stub.
@@ -47,7 +50,9 @@ only makes the provider visible and easy to switch. Over-refusal of the artifact
   pointing to `make run-local`. Render only after health loads; keep it compact/responsive.
 - **Test / verification:** see item 4 (frontend tests).
 - **Expected outcome:** header shows `qwen3:1.7b` on local, an amber demo-stub warning on mock.
-- **DONE / DROPPED:**
+- **DONE (commit `e341dc2`):** Extended the TS `HealthResponse` and added a `ProviderChip` in `HealthDot`
+  (reusing the single `/health` call): model name for `local_openai`, amber `mock (demo stub)` chip with a
+  `make run-local` tooltip for mock. Decision: shipped.
 
 ## 4) Tests
 - **Goal:** Lock the new behavior offline.
@@ -57,7 +62,9 @@ only makes the provider visible and easy to switch. Over-refusal of the artifact
   two new fields and adds a `HealthDot` test (mock -> demo-stub warning; local_openai -> model name).
 - **Test / verification:** `pytest`, `npm test`, `tsc --noEmit` green.
 - **Expected outcome:** green suites, no live backend dependency.
-- **DONE / DROPPED:**
+- **DONE (commit `f3eb7b6`):** Backend `/health` field tests (mock default + `local_openai` override via
+  `dependency_overrides[get_settings]`) and a `HealthDot` test (mock warning vs model name). `pytest` 123
+  passed; `npm test` 14 passed; `tsc`/`vite build` clean. Decision: shipped.
 
 ## 5) Docs + verification + close-out
 - **Goal:** Document the runbook and prove it end to end.
@@ -67,7 +74,10 @@ only makes the provider visible and easy to switch. Over-refusal of the artifact
   markers with commit hashes; push.
 - **Test / verification:** manual E2E + clean tree after push.
 - **Expected outcome:** a reviewer can run the real-model demo in one command and see the active provider.
-- **DONE / DROPPED:**
+- **DONE (commit `2627342`):** README documents `make run-local`, the mock-refuses-by-design note, and the
+  `/health` + header provider visibility. E2E: live server with `run-local` returned `/health`
+  `llm_provider=local_openai`, `llm_model=qwen3:1.7b`; mock default + warning covered by tests. Decision:
+  shipped on `feat/provider-visibility`.
 
 ---
 
