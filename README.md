@@ -125,7 +125,8 @@ embedded `data/index`. Full guide: [`docs/docker.md`](docs/docker.md).
 
 A Vite + React + TypeScript dashboard (`frontend/`) for the API: pick a programme scope, then ask grounded
 questions or run the checklist / missing-document / draft-email tools, with citations, refusal states, and
-the disclaimer shown inline. Local-dev only for now (no Docker service yet).
+the disclaimer shown inline. This section is for local Vite development; the Docker full-stack flow serves
+the built frontend at `http://localhost:8080` through nginx.
 
 ```bash
 cd frontend
