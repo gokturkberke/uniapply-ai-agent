@@ -11,8 +11,7 @@ import type { Programme } from "../config/programmes";
 const PROGRAMME: Programme = {
   university_slug: "university-of-stuttgart",
   programme_slug: "msc-computer-science",
-  university: "University of Stuttgart",
-  programme: "M.Sc. Computer Science",
+  title: "University of Stuttgart - M.Sc. Computer Science",
 };
 
 beforeEach(() => {

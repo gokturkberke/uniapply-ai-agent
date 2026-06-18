@@ -11,8 +11,7 @@ import type { Programme } from "../config/programmes";
 const PROGRAMME: Programme = {
   university_slug: "paderborn-university",
   programme_slug: "msc-computer-science",
-  university: "Paderborn University",
-  programme: "M.Sc. Computer Science",
+  title: "Paderborn University - M.Sc. Computer Science",
 };
 
 beforeEach(() => {

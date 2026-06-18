@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { getProgrammes } from "./api/endpoints";
 import { AppShell } from "./components/AppShell";
 import { AskPanel } from "./components/AskPanel";
 import { ChecklistPanel } from "./components/ChecklistPanel";
@@ -7,6 +8,8 @@ import { DetectMissingPanel } from "./components/DetectMissingPanel";
 import { DraftEmailPanel } from "./components/DraftEmailPanel";
 import { Tabs, type TabId } from "./components/Tabs";
 import { findProgramme, programmeKey } from "./config/programmes";
+import { useApiCall } from "./hooks/useApiCall";
+import { ErrorBanner } from "./ui/ErrorBanner";
 
 function EmptyState() {
   return (
@@ -23,13 +26,29 @@ function EmptyState() {
 }
 
 export default function App() {
+  const { data: programmes, loading, error, run } = useApiCall(getProgrammes);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>("ask");
 
-  const programme = selectedKey ? (findProgramme(selectedKey) ?? null) : null;
+  useEffect(() => {
+    void run();
+  }, [run]);
+
+  const list = programmes ?? [];
+  const programme = selectedKey ? (findProgramme(list, selectedKey) ?? null) : null;
 
   return (
-    <AppShell selectedKey={selectedKey} onSelectProgramme={setSelectedKey}>
+    <AppShell
+      selectedKey={selectedKey}
+      onSelectProgramme={setSelectedKey}
+      programmes={list}
+      programmesLoading={loading}
+    >
+      {error ? (
+        <div className="mb-4">
+          <ErrorBanner message={`Could not load programmes: ${error}`} />
+        </div>
+      ) : null}
       <Tabs active={activeTab} onChange={setActiveTab} disabled={!programme} />
       {!programme ? (
         <EmptyState />

@@ -11,8 +11,7 @@ import type { Programme } from "../config/programmes";
 const PROGRAMME: Programme = {
   university_slug: "technical-university-of-munich",
   programme_slug: "msc-informatics",
-  university: "Technical University of Munich",
-  programme: "M.Sc. Informatics",
+  title: "Technical University of Munich - M.Sc. Informatics",
 };
 
 const DISCLAIMER = "Informational support only.";

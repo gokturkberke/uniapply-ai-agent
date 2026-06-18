@@ -1,15 +1,20 @@
 import type { ReactNode } from "react";
 
+import type { Programme } from "../config/programmes";
 import { HealthDot } from "./HealthDot";
 import { ProgrammeSelector } from "./ProgrammeSelector";
 
 export function AppShell({
   selectedKey,
   onSelectProgramme,
+  programmes,
+  programmesLoading,
   children,
 }: {
   selectedKey: string | null;
   onSelectProgramme: (key: string | null) => void;
+  programmes: Programme[];
+  programmesLoading: boolean;
   children: ReactNode;
 }) {
   return (
@@ -26,7 +31,12 @@ export function AppShell({
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <HealthDot />
-            <ProgrammeSelector value={selectedKey} onChange={onSelectProgramme} />
+            <ProgrammeSelector
+              programmes={programmes}
+              value={selectedKey}
+              onChange={onSelectProgramme}
+              loading={programmesLoading}
+            />
           </div>
         </div>
       </header>
