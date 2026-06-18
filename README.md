@@ -105,17 +105,20 @@ warning). A copy-pasteable smoke runbook lives at [`docs/experiments/local-llm-s
 
 ### Run with Docker (optional)
 
-Docker is **additive** — it does not replace the local flow above. It runs the API plus a **Qdrant
-server** container (Ollama stays on your host):
+Docker is **additive** — it does not replace the local flow above. `docker compose up --build` brings up the
+**full stack**: the API, a **Qdrant server**, and the **frontend** (an nginx-served SPA that reverse-proxies
+the API, so no CORS is needed in Docker). Ollama stays on your host.
 
 ```bash
 cp .env.example .env
 docker compose up --build      # or: make docker-up
-curl localhost:8000/health
+# UI:  http://localhost:8080
+# API: curl localhost:8000/health   (also proxied at localhost:8080/api/health)
 ```
 
-Build the index inside Docker with `make docker-ingest && make docker-chunk && make docker-index`, and run
-the offline tests with `make docker-test`. Note the Docker (server) index is separate from your local
+For real (non-refusing) answers, set `LLM_PROVIDER=local_openai` in `.env` (the header chip shows the active
+provider). Build the index inside Docker with `make docker-ingest && make docker-chunk && make docker-index`,
+and run the offline tests with `make docker-test`. The Docker (server) index is separate from your local
 embedded `data/index`. Full guide: [`docs/docker.md`](docs/docker.md).
 
 ## Frontend (local dev)

@@ -1,12 +1,14 @@
 # Running UniApply with Docker
 
-Docker is **optional and additive** — it does not replace the local venv flow in the README. It
-containerizes the FastAPI API and runs **Qdrant as a server service**, which is closer to a real
-deployment and avoids the embedded single-process file lock.
+Docker is **optional and additive** — it does not replace the local venv flow in the README. It runs the
+**full stack** — the FastAPI API, **Qdrant as a server service**, and the **frontend** — which is closer to a
+real deployment and avoids the embedded single-process file lock.
 
 ## What runs where
 - **`api`** container — the FastAPI app (`uvicorn app.main:app`).
 - **`qdrant`** container — the official Qdrant server; the Docker index lives in its `qdrant_storage` volume.
+- **`frontend`** container — nginx serving the built SPA on `http://localhost:8080`; it reverse-proxies
+  `/api/*` to the `api` service, so the browser uses a single origin and needs no CORS.
 - **Ollama stays on your host** (not containerized); the `api` container reaches it at
   `http://host.docker.internal:11434/v1`.
 
@@ -18,10 +20,19 @@ deployment and avoids the embedded single-process file lock.
 ```bash
 cp .env.example .env          # required: docker-compose reads .env
 docker compose up --build     # or: make docker-up
+# UI:  http://localhost:8080
 curl localhost:8000/health    # {"status":"ok", ...}
 ```
 Compose overrides two values for the container regardless of your `.env`: `QDRANT_URL=http://qdrant:6333`
 and `LOCAL_LLM_BASE_URL=http://host.docker.internal:11434/v1`.
+
+## Frontend (full stack)
+`docker compose up --build` also serves the **frontend** at <http://localhost:8080>. nginx serves the static
+SPA and reverse-proxies `/api/*` to the `api` service over the compose network, so the browser stays on a
+**single origin** — no CORS in Docker (local Vite dev on `:5173` still uses the CORS allow-list). The image
+bakes `VITE_API_BASE_URL=/api` at build time, and the `frontend` service waits for the `api` healthcheck
+before starting, so it never proxies to a dead upstream. For real answers, set `LLM_PROVIDER=local_openai` in
+`.env`; the header provider chip shows mock vs the active model.
 
 ## Build the index inside Docker
 The image ships only the committed `data/registry/`; raw documents and the index are not baked in. With
@@ -52,6 +63,9 @@ The suite is fully offline (in-memory Qdrant + mocked LLM/HTTP), so it needs **n
 
 ## Troubleshooting
 - **`docker compose` errors about `.env`** — run `cp .env.example .env` first.
+- **UI at :8080 loads but API calls fail (502)** — nginx proxies `/api/*` to the `api` service; a 502 means
+  api is not healthy yet. Check `docker compose ps` and api logs. `curl localhost:8080/api/health` should
+  mirror `curl localhost:8000/health`.
 - **`/ask` always refuses / empty results** — the Docker (server) index is empty until you run
   `make docker-ingest && make docker-chunk && make docker-index`; it is separate from your local index.
 - **Missing raw files** — ingestion needs the official pages under `./data/raw/` (gitignored); save them first.

@@ -30,6 +30,20 @@ services:
     volumes:
       - qdrant_storage:/qdrant/storage
 
+  frontend:
+    # Multi-stage build (Vite -> nginx). nginx serves the SPA and reverse-proxies
+    # /api/* to the api service, so the browser stays on a single origin (no CORS).
+    build:
+      context: ./frontend
+      args:
+        VITE_API_BASE_URL: /api
+    ports:
+      - "8080:80"
+    depends_on:
+      # api has a /health HEALTHCHECK, so nginx never proxies to a dead upstream.
+      api:
+        condition: service_healthy
+
 volumes:
   qdrant_storage:
   fastembed_cache:
