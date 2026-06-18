@@ -69,6 +69,12 @@ def health(settings: Settings = Depends(get_settings)) -> HealthResponse:
         app_name=settings.app_name,
         environment=settings.environment,
         version=settings.api_version,
+        llm_provider=settings.llm_provider,
+        llm_model=(
+            settings.local_llm_model
+            if settings.llm_provider == "local_openai"
+            else None
+        ),
     )
 
 

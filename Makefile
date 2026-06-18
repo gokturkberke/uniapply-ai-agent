@@ -1,5 +1,11 @@
-.PHONY: docker-build docker-up docker-down docker-shell docker-test \
+.PHONY: run-local docker-build docker-up docker-down docker-shell docker-test \
         docker-ingest docker-chunk docker-index docker-evaluate
+
+# Run the API locally against host Ollama (real grounded answers, not the mock
+# stub). Deterministic sampling for a stable demo. Requires `ollama pull qwen3:1.7b`.
+run-local:
+	LLM_PROVIDER=local_openai LOCAL_LLM_MODEL=qwen3:1.7b LLM_MAX_TOKENS=768 \
+	  LOCAL_LLM_TEMPERATURE=0 LOCAL_LLM_SEED=42 uvicorn app.main:app --reload
 
 # Build the API image.
 docker-build:

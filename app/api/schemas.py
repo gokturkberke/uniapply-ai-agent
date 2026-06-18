@@ -13,6 +13,11 @@ class HealthResponse(BaseModel):
     app_name: str = Field(description="Human-readable application name.")
     environment: str = Field(description="Active deployment environment.")
     version: str = Field(description="API version identifier.")
+    llm_provider: str = Field(description="Active LLM provider ('mock' or 'local_openai').")
+    llm_model: str | None = Field(
+        default=None,
+        description="Active local model id, or null when the provider is 'mock'.",
+    )
 
 
 class AskRequest(BaseModel):

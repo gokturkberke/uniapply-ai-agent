@@ -16,6 +16,8 @@ export interface HealthResponse {
   app_name: string;
   environment: string;
   version: string;
+  llm_provider: string;
+  llm_model: string | null;
 }
 
 export interface AskRequest {
