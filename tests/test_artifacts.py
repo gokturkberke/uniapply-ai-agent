@@ -9,7 +9,7 @@ from app.rag.artifacts import (
     draft_email,
     generate_checklist,
 )
-from app.rag.generation import Citation, MockLLMClient
+from app.rag.generation import Citation, LLMOutputError, MockLLMClient
 from app.rag.metadata import Chunk, Language, ParentSection, SourceAuthority
 from app.rag.retrieval import RetrievalResult, RetrievedChunk
 
@@ -148,6 +148,31 @@ def test_checklist_refuses_when_all_citations_out_of_context() -> None:
     result = generate_checklist(_result(sufficient=True), llm_client=MockLLMClient(canned))
     assert result.insufficient_context is True
     assert result.items == []
+
+
+# --- truncated model output degrades to a clean refusal (PR 2 regression) ---
+
+
+class _TruncatedLLM:
+    """Simulates a local model whose JSON output is cut off (LLMOutputError)."""
+
+    def generate(self, **_kwargs):  # type: ignore[no-untyped-def]
+        raise LLMOutputError("local LLM output failed schema validation: truncated")
+
+
+def test_checklist_refuses_on_truncated_output() -> None:
+    result = generate_checklist(_result(sufficient=True), llm_client=_TruncatedLLM())
+    assert result.insufficient_context is True
+    assert result.items == []
+    assert result.citations == []
+
+
+def test_detect_missing_refuses_on_truncated_output() -> None:
+    result = detect_missing_documents(
+        ["Transcript"], _result(sufficient=True), llm_client=_TruncatedLLM()
+    )
+    assert result.insufficient_context is True
+    assert result.missing == [] and result.satisfied == []
 
 
 def test_detect_missing_refuses_when_all_citations_out_of_context() -> None:
