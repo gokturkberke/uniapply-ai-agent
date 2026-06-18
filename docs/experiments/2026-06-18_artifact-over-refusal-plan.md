@@ -31,7 +31,9 @@ budget headroom), and switching the default demo model.
 - **Test / verification:** checklist completes (no `LLMOutputError`) at 1536 across the 5 programmes; raise to
   2048 only if a programme still truncates.
 - **Expected outcome:** Checklist no longer truncated at the demo budget.
-- **DONE / DROPPED:**
+- **DONE (commits `1f5a4e4`, `5f39d31`):** Raised the `make run-local` / README demo budget 768 -> 1536 ->
+  2048 and fixed the `.env.example` guidance. Smoke: the Konstanz checklist (truncated at 768 AND 1536)
+  completes at 2048 (8 grounded items); TUM/Stuttgart already fit. Decision: shipped.
 
 ## 2) Bound + sharpen the Checklist prompt
 - **Goal:** Compact, higher-quality checklist that fits a modest budget.
@@ -40,7 +42,8 @@ budget headroom), and switching the default demo model.
   refusal/grounding logic (lines 96-99) unchanged.
 - **Test / verification:** offline artifact tests stay green; local-model smoke shows grounded items.
 - **Expected outcome:** concise grounded checklists, no truncation.
-- **DONE / DROPPED:**
+- **DONE (commit `03ee3ba`):** Bounded the checklist prompt (<=8 items, one-sentence details). Smoke:
+  Konstanz/TUM/Stuttgart checklists ground with concise items at 2048. Decision: shipped.
 
 ## 3) Sharpen the Detect-missing prompt
 - **Goal:** Extract real required documents/credentials, not page section labels.
@@ -50,7 +53,10 @@ budget headroom), and switching the default demo model.
   page sections, field labels, or procedural steps; keep items short.
 - **Test / verification:** local-model smoke on a programme shows document-like items, not labels.
 - **Expected outcome:** missing/satisfied lists read as real documents.
-- **DONE / DROPPED:**
+- **DONE (commit `03ee3ba`):** Sharpened the detect-missing prompt to list concrete documents/credentials
+  and exclude page labels/steps. Smoke: TUM detect-missing now returns real documents (Statement of reasons,
+  CV/resume, Scientific essay, Analysis of the Curriculum, uni-assist VPD; satisfied: Bachelor's certificate
+  + TOEFL) instead of the prior "Start of study / ECTS Credits" page labels. Decision: shipped.
 
 ## 4) Verification + regression test
 - **Goal:** Prove the fix and lock the truncation behavior offline.
@@ -61,7 +67,12 @@ budget headroom), and switching the default demo model.
   refusal + item counts before vs after.
 - **Test / verification:** `pytest` green; frontend `npm test`/`build` green (untouched); smoke recorded.
 - **Expected outcome:** measurable drop in artifact refusals; offline suite green.
-- **DONE / DROPPED:**
+- **DONE (commit `a20ed86`):** Added the truncation->refusal regression test (an `LLMOutputError` yields the
+  canonical refusal, never a 500). `pytest` 125 passed offline. Local-model smoke (qwen3:1.7b @2048, thinking
+  ON): checklist grounds for ~3/5 programmes (Konstanz, TUM, Stuttgart) - the exact set varies run-to-run
+  because Ollama/qwen3 is NOT bit-reproducible even at temperature=0/seed=42; Paderborn (model self-reports
+  insufficient) and Saarland (emits non-JSON) remain refusals, and Konstanz detect-missing refuses - residual
+  qwen3:1.7b limitations, not budget. Decision: shipped (a partial, honest improvement over 0/5 at 768).
 
 ## 5) (PROPOSED - awaiting explicit approval) Disable qwen3 "thinking" for structured output
 - **Goal:** Recover the model-reliability refusals that budget + prompts alone cannot fix.
@@ -79,7 +90,14 @@ budget headroom), and switching the default demo model.
   behavior), so it is gated on explicit approval per the user's instruction.
 - **Expected outcome:** with 2048 + `/no_think`, 4 of 5 checklists ground (Saarland residual) and detect-missing
   improves; mock and offline tests unaffected (only the local client appends the marker).
-- **DONE / DROPPED:**
+- **DROPPED (2026-06-18):** Implemented `/no_think` (typed `local_llm_disable_thinking` + the client appending
+  the marker) and smoke-tested it, but the fuller evidence disproved the single-case projection. It *degraded*
+  detect-missing (TUM detect-missing refuses with `/no_think` vs returns real documents without it) and gave
+  no reliable checklist gain - it fixed Paderborn but the TUM checklist result flipped between runs, because
+  the model is not deterministic run-to-run despite temperature=0/seed=42, so "which 3 of 5 ground" is noise.
+  Net lateral-to-negative, so the uncommitted change was reverted (working tree restored). Residual
+  model-reliability refusals would be better addressed by a larger model (qwen3:4b), which the user has
+  deprioritized for heat/latency - revisit there if artifact quality becomes a priority.
 
 ---
 
