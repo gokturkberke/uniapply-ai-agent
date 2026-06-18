@@ -8,6 +8,8 @@ vi.mock("../api/endpoints", () => ({
     app_name: "UniApply AI Agent",
     environment: "development",
     version: "v1",
+    llm_provider: "mock",
+    llm_model: null,
   }),
   postAsk: vi.fn(),
   postChecklist: vi.fn(),
