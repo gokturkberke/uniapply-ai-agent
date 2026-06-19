@@ -3,17 +3,31 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ProgrammeSelector } from "../components/ProgrammeSelector";
-import { PROGRAMMES } from "../config/programmes";
+import type { Programme } from "../config/programmes";
+
+const PROGRAMMES: Programme[] = [
+  {
+    university_slug: "technical-university-of-munich",
+    programme_slug: "msc-informatics",
+    title: "Technical University of Munich - M.Sc. Informatics",
+  },
+  {
+    university_slug: "saarland-university",
+    programme_slug: "msc-computer-science",
+    title: "Saarland University - M.Sc. Computer Science",
+  },
+];
 
 describe("ProgrammeSelector", () => {
-  it("lists the placeholder plus all 5 programmes", () => {
-    render(<ProgrammeSelector value={null} onChange={vi.fn()} />);
+  it("lists the placeholder plus the provided programmes", () => {
+    render(
+      <ProgrammeSelector programmes={PROGRAMMES} value={null} onChange={vi.fn()} />,
+    );
 
-    const options = screen.getAllByRole("option");
-    expect(options).toHaveLength(PROGRAMMES.length + 1);
+    expect(screen.getAllByRole("option")).toHaveLength(PROGRAMMES.length + 1);
     expect(
       screen.getByRole("option", {
-        name: "Technical University of Munich — M.Sc. Informatics",
+        name: "Technical University of Munich - M.Sc. Informatics",
       }),
     ).toBeInTheDocument();
   });
@@ -21,7 +35,9 @@ describe("ProgrammeSelector", () => {
   it("reports the composite slug key when a programme is picked", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();
-    render(<ProgrammeSelector value={null} onChange={onChange} />);
+    render(
+      <ProgrammeSelector programmes={PROGRAMMES} value={null} onChange={onChange} />,
+    );
 
     await user.selectOptions(
       screen.getByRole("combobox"),

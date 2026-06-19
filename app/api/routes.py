@@ -28,6 +28,8 @@ from app.rag.generation import (
     generate_grounded_answer,
     get_llm_client,
 )
+from app.rag.metadata import ProgrammeSummary
+from app.rag.registry import distinct_programmes, load_registry
 from app.rag.retrieval import RetrievalResult, retrieve_with_parents
 
 router = APIRouter()
@@ -76,6 +78,13 @@ def health(settings: Settings = Depends(get_settings)) -> HealthResponse:
             else None
         ),
     )
+
+
+@router.get("/programmes", response_model=list[ProgrammeSummary], tags=["system"])
+def programmes() -> list[ProgrammeSummary]:
+    """List the distinct programmes (slug pair + display title) from the registry."""
+
+    return distinct_programmes(load_registry())
 
 
 @router.post("/ask", response_model=AskResponse, tags=["rag"])

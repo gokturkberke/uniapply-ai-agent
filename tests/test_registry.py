@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from app.rag.metadata import SourceAuthority
-from app.rag.registry import filter_sources, load_registry
+from app.rag.registry import distinct_programmes, filter_sources, load_registry
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "registry_sample.json"
 COMMITTED_MANIFEST = Path("data/registry/sources.json")
@@ -110,3 +110,57 @@ def test_committed_manifest_holds_verified_cs_corpus() -> None:
         "stuttgart-cs-official-programme-page",
         "saarland-cs-official-programme-page",
     }
+
+
+def test_distinct_programmes_from_committed_manifest() -> None:
+    # Five distinct programmes, sorted by (university_slug, programme_slug); the
+    # nine sources (some sharing a programme) collapse to one entry per programme.
+    programmes = distinct_programmes(load_registry(COMMITTED_MANIFEST))
+
+    assert [(p.university_slug, p.programme_slug) for p in programmes] == [
+        ("paderborn-university", "msc-computer-science"),
+        ("saarland-university", "msc-computer-science"),
+        ("technical-university-of-munich", "msc-informatics"),
+        ("university-of-konstanz", "msc-computer-and-information-science"),
+        ("university-of-stuttgart", "msc-computer-science"),
+    ]
+    konstanz = next(
+        p for p in programmes if p.university_slug == "university-of-konstanz"
+    )
+    # Title from the primary source, trailing parenthetical stripped.
+    assert konstanz.title == "University of Konstanz - M.Sc. Computer and Information Science"
+
+
+def test_distinct_programmes_prefers_primary_and_excludes_none(tmp_path: Path) -> None:
+    def src(source_id: str, title: str, programme_slug: str | None, authority: str) -> dict:
+        return {
+            "source_id": source_id,
+            "title": title,
+            "university_slug": "uni-alpha",
+            "programme_slug": programme_slug,
+            "source_type": "official_page",
+            "source_authority": authority,
+            "lang": "en",
+            "url": f"https://example.org/{source_id}",
+            "country_scope": ["all"],
+        }
+
+    manifest = tmp_path / "m.json"
+    manifest.write_text(
+        json.dumps(
+            [
+                src("a-secondary", "uni-assist - Plan your application (VPD)", "msc-x", "secondary"),
+                src("a-primary", "Uni Alpha - M.Sc. X (programme page)", "msc-x", "primary"),
+                src("a-none", "Uni Alpha - general info (overview)", None, "primary"),
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    programmes = distinct_programmes(load_registry(manifest))
+
+    # The programme_slug=None source is excluded; one programme remains.
+    assert len(programmes) == 1
+    assert programmes[0].programme_slug == "msc-x"
+    # Primary source title chosen over the secondary, trailing parenthetical stripped.
+    assert programmes[0].title == "Uni Alpha - M.Sc. X"

@@ -9,10 +9,15 @@ import type {
   EmailRequest,
   EmailResponse,
   HealthResponse,
+  ProgrammeInfo,
 } from "./types";
 
 export function getHealth(): Promise<HealthResponse> {
   return getJson<HealthResponse>("/health");
+}
+
+export function getProgrammes(): Promise<ProgrammeInfo[]> {
+  return getJson<ProgrammeInfo[]>("/programmes");
 }
 
 export function postAsk(payload: AskRequest): Promise<AskResponse> {

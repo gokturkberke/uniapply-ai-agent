@@ -22,8 +22,7 @@ export function ChecklistPanel({ programme }: { programme: Programme }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-slate-600">
-        Generate the application checklist for {programme.university} —{" "}
-        {programme.programme}.
+        Generate the application checklist for {programme.title}.
       </p>
       <Button type="button" onClick={onGenerate} disabled={loading}>
         {loading ? "Generating..." : "Generate checklist"}

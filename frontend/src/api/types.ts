@@ -11,6 +11,12 @@ export interface ChecklistItem {
   detail: string;
 }
 
+export interface ProgrammeInfo {
+  university_slug: string;
+  programme_slug: string;
+  title: string;
+}
+
 export interface HealthResponse {
   status: string;
   app_name: string;
